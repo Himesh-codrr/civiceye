@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { LocateFixed, Minus, Plus } from 'lucide-react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { LocateFixed, Minus, Plus, X, Navigation } from 'lucide-react';
 import type { Coordinates, Report } from '@/types';
 import { useGoogleMapsStatus } from '@/hooks/useGoogleMaps';
 import { requestLocation } from '@/services/geoService';
@@ -10,16 +10,21 @@ import { GoogleMapView } from './GoogleMapView';
 import { FallbackMapView } from './FallbackMapView';
 import { Loader } from '../Loader';
 
+export interface MapViewHandle {
+  /** Fly to a place query and draw a blackout dim around it. */
+  flyToPlace: (query: string) => void;
+  /** Clear any active blackout / focus. */
+  clearFocus: () => void;
+}
+
 interface MapViewProps {
   reports: Report[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  /** Optional controlled centre/zoom. */
   center?: Coordinates;
   zoom?: number;
   onViewChange?: (center: Coordinates, zoom: number) => void;
   heatmap?: boolean;
-  /** Allow clicks to drop a pin (report wizard). */
   pinDropping?: boolean;
   onPinDrop?: (coords: Coordinates) => void;
   droppedPin?: Coordinates | null;
@@ -30,20 +35,27 @@ interface MapViewProps {
  * Map shell: boots Google Maps when a key exists, otherwise renders the
  * built-in fallback vector map. Adds zoom + locate controls that work in
  * both modes.
+ *
+ * Exposes an imperative handle (via forwardRef / useImperativeHandle) so
+ * parents (e.g. the page header search bar) can invoke flyToPlace /
+ * clearFocus without duplicating the search UI on top of the map.
  */
-export function MapView({
-  reports,
-  selectedId,
-  onSelect,
-  center: centerProp,
-  zoom: zoomProp,
-  onViewChange: onViewChangeProp,
-  heatmap = false,
-  pinDropping = false,
-  onPinDrop,
-  droppedPin = null,
-  className,
-}: MapViewProps) {
+export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
+  {
+    reports,
+    selectedId,
+    onSelect,
+    center: centerProp,
+    zoom: zoomProp,
+    onViewChange: onViewChangeProp,
+    heatmap = false,
+    pinDropping = false,
+    onPinDrop,
+    droppedPin = null,
+    className,
+  },
+  ref,
+) {
   const status = useGoogleMapsStatus();
   const toast = useToast();
   const controlled = centerProp !== undefined && zoomProp !== undefined;
@@ -76,6 +88,24 @@ export function MapView({
     }
   };
 
+  // --- Imperative API handed out to parent via ref ---
+  const searchApiRef = useRef<{
+    search: (q: string) => void;
+    clear: () => void;
+  } | null>(null);
+  const [searchLabel, setSearchLabel] = useState<string | null>(null);
+
+  const flyToPlace = useCallback((q: string) => {
+    if (!searchApiRef.current) return;
+    searchApiRef.current.search(q.trim());
+  }, []);
+  const clearFocus = useCallback(() => {
+    searchApiRef.current?.clear();
+    setSearchLabel(null);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ flyToPlace, clearFocus }), [flyToPlace, clearFocus]);
+
   const commonProps = {
     reports,
     center,
@@ -87,6 +117,23 @@ export function MapView({
     pinDropping,
     onPinDrop: onPinDrop ?? (() => undefined),
     droppedPin,
+    onSearchReady:
+      status === 'ready'
+        ? (api: { search: (q: string) => void; clear: () => void }) => {
+            searchApiRef.current = api;
+          }
+        : undefined,
+    onSearchTarget:
+      status === 'ready'
+        ? (target: { center: Coordinates; zoom: number; label?: string } | null) => {
+            if (!target) {
+              setSearchLabel(null);
+              return;
+            }
+            setSearchLabel(target.label ?? null);
+            handleViewChange(target.center, target.zoom);
+          }
+        : undefined,
   };
 
   return (
@@ -100,10 +147,38 @@ export function MapView({
       {status === 'ready' ? (
         <GoogleMapView {...commonProps} />
       ) : (
-        <FallbackMapView {...commonProps} />
+        <FallbackMapView
+          reports={commonProps.reports}
+          center={commonProps.center}
+          zoom={commonProps.zoom}
+          onViewChange={commonProps.onViewChange}
+          selectedId={commonProps.selectedId}
+          onSelect={commonProps.onSelect}
+          heatmap={commonProps.heatmap}
+          pinDropping={commonProps.pinDropping}
+          onPinDrop={commonProps.onPinDrop}
+          droppedPin={commonProps.droppedPin}
+        />
       )}
 
-      {/* Shared controls */}
+      {/* "Focus: <place>" pill on the map — small, dismissable, only
+          visible after a place search. Lets users clear the blackout
+          without leaving the map area. */}
+      {status === 'ready' && searchLabel ? (
+        <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-lg border-2 border-[#172b44] bg-[#ffd630] px-3 py-1.5 text-xs font-black shadow-[3px_3px_0_#172b44]">
+          <Navigation className="h-3.5 w-3.5" /> Focus: {searchLabel}
+          <button
+            onClick={clearFocus}
+            className="pointer-events-auto ml-1 rounded p-0.5 hover:bg-black/10"
+            aria-label="Clear focus"
+            title="Clear blackout"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ) : null}
+
+      {/* Shared zoom / locate controls */}
       <div className="absolute right-3 top-3 z-30 flex flex-col gap-2">
         <button
           onClick={() => zoomBy(1)}
@@ -130,4 +205,4 @@ export function MapView({
       </div>
     </div>
   );
-}
+});

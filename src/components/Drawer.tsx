@@ -71,10 +71,10 @@ export function Drawer({
               )}
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
-                aria-label="Close panel"
+                className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition-colors active:bg-slate-200 active:text-slate-900 dark:text-slate-300 dark:active:bg-white/15 dark:active:text-white"
+                aria-label="Close menu"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" strokeWidth={2.3} />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">{children}</div>

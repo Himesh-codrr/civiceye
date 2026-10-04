@@ -35,7 +35,7 @@ export const CAMPUS_BOUNDS = {
 export const CAMPUS_ACREAGE = {
   academic: 25.3,
   residential: 11.8,
-  totalMeasured: 37.2,
+  
   official: 50,
 };
 

@@ -109,6 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) throw new Error('Supabase is not configured.');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // Don't try to manually flush session state here — callers that need to
+    // navigate post-signin use window.location.replace (full reload), which
+    // re-mounts the app from the persisted cookie and avoids every React
+    // state/effect race.
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
@@ -118,15 +122,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: { full_name: fullName },
-        // Send the confirmation link to /auth/callback (PKCE) so the click
-        // actually signs the user in — instead of landing on / and getting
-        // bounced to /login with the token hash stripped.
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) throw error;
-    // When "Confirm email" is off, Supabase returns a session immediately.
-    return { session: data.session ?? null };
+    if (data.session) {
+      setSession(data.session);
+      return { session: data.session };
+    }
+    return { session: null };
   }, []);
 
   const signInWithMagicLink = useCallback(async (email: string) => {
@@ -138,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) throw error;
+    // Magic links don't produce a session here — user clicks the link in
+    // their email, which lands on /auth/callback. Nothing to wait for.
   }, []);
 
   const resendConfirmation = useCallback(async (email: string) => {
@@ -165,6 +171,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  // Derive isAmrita from the session email the instant a session lands
+  // (faster than waiting for the profiles-table fetch, so the brand swaps
+  // on the first render after sign-in — no CivicEye flash for Amrita users).
+  const isAmrita = Boolean(
+    profile?.is_amrita ?? (session?.user?.email ? isAmritaEmail(session.user.email) : false),
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       configured: isSupabaseConfigured,
@@ -172,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       profile,
-      isAmrita: Boolean(profile?.is_amrita),
+      isAmrita,
       signInWithPassword,
       signUp,
       signInWithMagicLink,
@@ -185,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       session,
       profile,
+      isAmrita,
       signInWithPassword,
       signUp,
       signInWithMagicLink,

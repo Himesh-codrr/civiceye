@@ -83,16 +83,25 @@ const CREATORS = [
     name: 'S. Himeshkara',
     role: 'Founder · UI Designer',
     lines: [
-      'I’m one of the UI designers behind CivicEye, part of a four-member team building a safer Bharath — one report at a time. My goal was simple: design a page that stays with you, so you never forget that help is just a click away.',
+      'I’m one of the UI designers behind CivicEye, part of the team building a safer Bharath — one report at a time. My goal was simple: design a page that stays with you, so you never forget that help is just a click away.',
       'CivicEye lets citizens report everyday hazards — broken streetlights, fallen trees, potholes — before they turn into tragedies. And with our SOS button, women can alert the police directly the moment they feel unsafe.',
     ],
     quote: 'Because safety shouldn’t be a privilege — it should be a right.',
+  },
+  {
+    badge: 'NI',
+    name: 'Niranjhan',
+    role: 'Brand Outreach',
+    lines: [
+      'Leads brand outreach and partnerships — making sure CivicEye is known where it matters most: in campus administrations, student bodies, and the wardens who act on the reports.',
+      'If you’ve seen CivicEye pop up at a campus event or reach a new city rollout, that’s his work.',
+    ],
   },
 ];
 
 /** Why the team built CivicEye — written by the founders. */
 const MISSION =
-  'Our team of four built CivicEye to solve a specific problem: urban hazards are frequently ignored until they cause harm. CivicEye is a reporting platform that allows citizens across India to document and track infrastructure failures like potholes and broken streetlights. Beyond infrastructure, we prioritize personal security. The platform features an SOS button designed specifically for women to instantly alert local law enforcement during emergencies. CivicEye exists to give citizens a practical tool to improve their surroundings and ensure their safety.';
+  'Our team built CivicEye to solve a specific problem: urban hazards are frequently ignored until they cause harm. CivicEye is a reporting platform that allows citizens across India to document and track infrastructure failures like potholes and broken streetlights. Beyond infrastructure, we prioritize personal security. The platform features an SOS button designed specifically for women to instantly alert local law enforcement during emergencies. CivicEye exists to give citizens a practical tool to improve their surroundings and ensure their safety.';
 
 /** About page. */
 export function About() {
@@ -186,7 +195,7 @@ export function About() {
 
       <section id="creators" className="scroll-mt-32 border-y border-slate-200/70 bg-white/60 py-14 dark:border-white/5 dark:bg-white/[0.02] sm:py-20">
         <div className="section-pad">
-          <SectionHeading eyebrow="The team" title="Built by four students" className="mb-6" />
+          <SectionHeading eyebrow="The team" title="Built by students" className="mb-6" />
           <p className="mx-auto mb-12 max-w-3xl text-center text-sm leading-relaxed text-slate-500 dark:text-slate-400 sm:text-base">
             {b(MISSION)}
           </p>

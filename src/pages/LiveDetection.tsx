@@ -464,7 +464,7 @@ export function LiveDetection() {
           summary: category
             ? `Detected ${categoryById(category).label.toLowerCase()} across the full road frame on ${camera.name} (${Math.round(confidence * 100)}% confidence).`
             : annotatedOnly
-              ? 'Roboflow returned an annotated frame, but this workflow did not expose prediction boxes.'
+              ? 'CivicLENS AI returned an annotated frame, but this workflow did not expose prediction boxes.'
               : 'Full road frame analysed — no issue met the current confidence threshold.',
         };
 
@@ -502,7 +502,7 @@ export function LiveDetection() {
       } catch (error) {
         if (!cancelled && generation === generationRef.current) {
           failed = true;
-          const message = error instanceof Error ? error.message : 'Roboflow could not analyse this frame.';
+          const message = error instanceof Error ? error.message : 'CivicLENS AI could not analyse this frame.';
           setLastError(message);
           setStatus('error');
         }
@@ -616,14 +616,14 @@ export function LiveDetection() {
           <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
             {hasRoboflowKey ? (
               <>
-                <strong>Roboflow live inference is connected.</strong> Every request sends the complete
+                <strong>CivicLENS AI live detection is online.</strong> Every request sends the complete
                 road frame through the same workflow/model as Report AI. The next frame is captured only
                 after the previous request finishes.
               </>
             ) : (
               <>
-                <strong>Roboflow is not active.</strong> {roboflowStatus().reason} Add the same
-                Roboflow variables used by Report AI and redeploy; the page will not silently use the
+                <strong>CivicLENS AI is not active.</strong> {roboflowStatus().reason} Add the same
+                CivicLENS AI variables used by Report AI and redeploy; the page will not silently use the
                 old mock detector.
               </>
             )}
@@ -752,7 +752,7 @@ export function LiveDetection() {
                 {current?.image ? (
                   <img
                     src={current.image}
-                    alt="Latest full road frame analysed by Roboflow"
+                    alt="Latest full road frame analysed by CivicLENS AI"
                     className="absolute inset-0 h-full w-full object-contain"
                   />
                 ) : null}
@@ -1009,7 +1009,7 @@ export function LiveDetection() {
                   <strong>{INFERENCE_INTERVALS[intervalIdx].ms / 1000}s</strong>.
                 </>
               )}{' '}
-              Each request waits for Roboflow to finish, and the optional auto-report requires the same
+              Each request waits for CivicLENS AI to finish, and the optional auto-report requires the same
               issue in two nearby frames.
             </div>
           </div>

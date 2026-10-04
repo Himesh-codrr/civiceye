@@ -374,8 +374,8 @@
 @layer components {
   .comic-page .btn-primary { background:#ffd630; color:#172b44; box-shadow:4px 4px 0 #172b44; border:2px solid #172b44; }
   .comic-page .btn-secondary { background:#fffdf4; color:#172b44; border:2px solid #172b44; }
-  .comic-button { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; border:3px solid #172b44; padding:.75rem 1rem; color:#172b44; font-size:.875rem; font-weight:900; box-shadow:4px 4px 0 #172b44; transition:transform .18s,box-shadow .18s; }
-  .comic-button:hover { transform:translate(-2px,-2px) rotate(-1deg); box-shadow:6px 6px 0 #172b44; }
+  .comic-button { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; border:3px solid #172b44; padding:.75rem 1rem; color:#172b44; font-size:.875rem; font-weight:900; box-shadow:3px 3px 0 #172b44; transition:transform .18s,box-shadow .18s; }
+  .comic-button:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 #172b44; }
 }
 
 /* Map route only — comic field-guide theme. Home and all other routes stay unchanged. */
@@ -790,4 +790,24 @@ html.amrita main.has-top-nav {
   html.amrita header .navbar-nav-pill > div {
     gap: 0 !important;
   }
+}
+
+/* Hide Google Maps InfoWindow default white bubble chrome so our MapPopup card shows cleanly */
+.gm-style .gm-style-iw-c {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+}
+.gm-style .gm-style-iw-d {
+  overflow: visible !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+.gm-style .gm-style-iw-tc,
+.gm-style .gm-style-iw-t::after {
+  display: none !important;
+}
+.gm-style .gm-style-iw-c > button.gm-ui-hover-effect {
+  display: none !important;
 }

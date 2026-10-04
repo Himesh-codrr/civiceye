@@ -497,29 +497,29 @@ export const CAMPUS_FLOORS = {
             },
             {
               "id": "d-a-1-3",
-              "type": "amenity",
-              "label": "Akshaya",
-              "name": "Akshaya Hall",
+              "type": "classroom",
+              "label": "A-104",
+              "name": "Classroom",
               "shape": "rect",
               "x": 608,
               "y": 26,
               "w": 200,
               "h": 130,
               "node": "n3",
-              "capacity": 100
+              "capacity": 80
             },
             {
               "id": "d-a-1-4",
-              "type": "amenity",
+              "type": "classroom",
               "label": "Indo-US",
-              "name": "Indo-US Initiatives (blue curved wall)",
+              "name": "Classroom",
               "shape": "rect",
               "x": 822,
               "y": 26,
               "w": 150,
               "h": 130,
               "node": "n4",
-              "capacity": 62
+              "capacity": 80
             },
             {
               "id": "d-a-1-5",
@@ -622,7 +622,7 @@ export const CAMPUS_FLOORS = {
               "id": "d-a-1-6",
               "type": "classroom",
               "label": "A-107",
-              "name": "Classroom (80, wooden door)",
+              "name": "Classroom",
               "shape": "rect",
               "x": 220,
               "y": 170,
@@ -635,7 +635,7 @@ export const CAMPUS_FLOORS = {
               "id": "d-a-1-7",
               "type": "classroom",
               "label": "A-108",
-              "name": "Classroom (80)",
+              "name": "Classroom",
               "shape": "rect",
               "x": 414,
               "y": 170,
@@ -658,16 +658,16 @@ export const CAMPUS_FLOORS = {
             },
             {
               "id": "d-a-1-9",
-              "type": "amenity",
+              "type": "classroom",
               "label": "A-110",
-              "name": "E-Learning Studio 120",
+              "name": "Classroom",
               "shape": "rect",
               "x": 802,
               "y": 170,
               "w": 170,
               "h": 130,
               "node": "n4",
-              "capacity": 120
+              "capacity": 80
             },
             {
               "id": "d-a-1-st",
@@ -3576,9 +3576,9 @@ export const CAMPUS_FLOORS = {
               "name": "Main Entrance & Reception",
               "shape": "rect",
               "x": 26,
-              "y": 340,
-              "w": 110,
-              "h": 50,
+              "y": 26,
+              "w": 200,
+              "h": 130,
               "node": "n0"
             },
             {
@@ -3587,10 +3587,10 @@ export const CAMPUS_FLOORS = {
               "label": "E-G2",
               "name": "Administrative Office",
               "shape": "rect",
-              "x": 266,
+              "x": 240,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 200,
+              "h": 130,
               "node": "n1"
             },
             {
@@ -3599,75 +3599,70 @@ export const CAMPUS_FLOORS = {
               "label": "E-G3",
               "name": "Director's Office",
               "shape": "rect",
-              "x": 507,
+              "x": 454,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 180,
+              "h": 130,
               "node": "n2"
             },
             {
               "id": "e-e-g-3",
-              "type": "amenity",
-              "label": "Amriteshwari",
-              "name": "Amriteshwari Hall",
-              "shape": "rect",
-              "x": 748,
-              "y": 26,
-              "w": 350,
-              "h": 180,
-              "node": "n3",
-              "capacity": 265,
-              "meta": {
-                "Use": "In-campus functions"
-              }
-            },
-            {
-              "id": "e-e-g-4",
               "type": "admin",
               "label": "E-G5",
               "name": "Admissions Office",
               "shape": "rect",
-              "x": 26,
-              "y": 177,
-              "w": 226,
-              "h": 137,
-              "node": "n0"
+              "x": 648,
+              "y": 26,
+              "w": 150,
+              "h": 130,
+              "node": "n3"
             },
             {
-              "id": "e-e-g-5",
-              "type": "amenity",
-              "label": "Conference",
-              "name": "Conference Hall",
-              "shape": "rect",
-              "x": 266,
-              "y": 177,
-              "w": 226,
-              "h": 137,
-              "node": "n1",
-              "capacity": 27
-            },
-            {
-              "id": "e-e-g-6",
+              "id": "e-e-g-4",
               "type": "amenity",
               "label": "E-G7",
               "name": "Medical Room",
               "shape": "rect",
-              "x": 507,
-              "y": 177,
-              "w": 226,
-              "h": 137,
+              "x": 26,
+              "y": 170,
+              "w": 200,
+              "h": 130,
+              "node": "n0"
+            },
+            {
+              "id": "e-e-g-5",
+              "type": "support",
+              "label": "E-G8",
+              "name": "Bank / ATM",
+              "shape": "rect",
+              "x": 240,
+              "y": 170,
+              "w": 200,
+              "h": 130,
+              "node": "n1"
+            },
+            {
+              "id": "e-e-g-6",
+              "type": "support",
+              "label": "E-G9",
+              "name": "Security & Reception",
+              "shape": "rect",
+              "x": 454,
+              "y": 170,
+              "w": 180,
+              "h": 130,
               "node": "n2"
             },
             {
               "id": "e-e-g-7",
               "type": "support",
-              "label": "E-G8",
-              "name": "Bank / ATM",
+              "label": "E-G10",
+              "name": "Utility & Storage",
               "shape": "rect",
-              "x": 748,
-              "y": 177,
-              "w": 226,
-              "h": 137,
+              "x": 648,
+              "y": 170,
+              "w": 150,
+              "h": 130,
               "node": "n3"
             },
             {
@@ -3677,7 +3672,7 @@ export const CAMPUS_FLOORS = {
               "name": "Central Staircase",
               "shape": "rect",
               "x": 465,
-              "y": 365,
+              "y": 340,
               "w": 70,
               "h": 50,
               "node": "n2"
@@ -3689,10 +3684,10 @@ export const CAMPUS_FLOORS = {
               "name": "Restrooms",
               "shape": "rect",
               "x": 850,
-              "y": 365,
+              "y": 340,
               "w": 66,
               "h": 50,
-              "node": "n3"
+              "node": "n4"
             },
             {
               "id": "e-e-g-ent",
@@ -3701,7 +3696,7 @@ export const CAMPUS_FLOORS = {
               "name": "Block E Entrance",
               "shape": "rect",
               "x": 90,
-              "y": 365,
+              "y": 340,
               "w": 110,
               "h": 50,
               "node": "n0"
@@ -3758,203 +3753,94 @@ export const CAMPUS_FLOORS = {
           "spaces": [
             {
               "id": "e-e-1-0",
-              "type": "office",
-              "label": "E-101",
-              "name": "Mathematics Faculty Room",
+              "type": "hall",
+              "label": "Amriteshwari",
+              "name": "Amriteshwari Hall",
               "shape": "rect",
               "x": 26,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 280,
+              "h": 140,
               "node": "n0",
-              "meta": {
-                "Department": "Mathematics"
-              },
-              "seats": [
-                {
-                  "id": "e-e-1-E-101-0",
-                  "x": 53,
-                  "y": 97,
-                  "desk": "E-101-01",
-                  "person": "Dr. K. V. Nagaraja",
-                  "role": "Professor",
-                  "dept": "Mathematics",
-                  "url": "https://www.amrita.edu/faculty/kv-nagaraja"
-                },
-                {
-                  "id": "e-e-1-E-101-1",
-                  "x": 225,
-                  "y": 97,
-                  "desk": "E-101-02",
-                  "person": "Dr. Neetu Srivastava",
-                  "role": "Associate Professor",
-                  "dept": "Mathematics",
-                  "url": "https://www.amrita.edu/faculty/s-neetu"
-                },
-                {
-                  "id": "e-e-1-E-101-2",
-                  "x": 53,
-                  "y": 133,
-                  "desk": "E-101-03",
-                  "person": "Dr. Sarada Jayan",
-                  "role": "Associate Professor",
-                  "dept": "Mathematics",
-                  "url": "https://www.amrita.edu/faculty/j-sarada"
-                },
-                {
-                  "id": "e-e-1-E-101-3",
-                  "x": 225,
-                  "y": 133,
-                  "desk": "E-101-04",
-                  "person": "Mamatha T. M.",
-                  "role": "Assistant Professor (Sr. Gd.)",
-                  "dept": "Mathematics",
-                  "url": "https://www.amrita.edu/faculty/tm-mamatha"
-                }
-              ]
+              "capacity": 265
             },
             {
               "id": "e-e-1-1",
-              "type": "classroom",
-              "label": "E-102",
-              "name": "Classroom (80)",
+              "type": "hall",
+              "label": "Sudhamani",
+              "name": "Sudhamani Hall",
               "shape": "rect",
-              "x": 266,
+              "x": 320,
               "y": 26,
-              "w": 200,
+              "w": 280,
               "h": 140,
               "node": "n1",
-              "capacity": 80
+              "capacity": 300
             },
             {
               "id": "e-e-1-2",
-              "type": "classroom",
-              "label": "E-103",
-              "name": "Classroom (80)",
+              "type": "hall",
+              "label": "Krishna",
+              "name": "Krishna Hall",
               "shape": "rect",
-              "x": 507,
+              "x": 614,
               "y": 26,
               "w": 200,
               "h": 140,
               "node": "n2",
-              "capacity": 80
+              "capacity": 112
             },
             {
               "id": "e-e-1-3",
-              "type": "lab",
+              "type": "classroom",
               "label": "E-104",
-              "name": "Computer Lab VIDYA",
+              "name": "Classroom",
               "shape": "rect",
-              "x": 748,
-              "y": 26,
-              "w": 226,
-              "h": 137,
-              "node": "n3",
-              "capacity": 60
+              "x": 26,
+              "y": 180,
+              "w": 180,
+              "h": 110,
+              "node": "n0",
+              "capacity": 80
             },
             {
               "id": "e-e-1-4",
               "type": "office",
               "label": "E-105",
-              "name": "English Faculty Room",
+              "name": "Faculty Room",
               "shape": "rect",
-              "x": 26,
-              "y": 177,
-              "w": 226,
-              "h": 137,
-              "node": "n0",
+              "x": 220,
+              "y": 180,
+              "w": 180,
+              "h": 110,
+              "node": "n1",
               "meta": {
-                "Department": "English"
-              },
-              "seats": [
-                {
-                  "id": "e-e-1-E-105-0",
-                  "x": 53,
-                  "y": 248,
-                  "desk": "E-105-01",
-                  "person": "Dr. Deepakumari S.",
-                  "role": "Assistant Professor (Sl. Gd.)",
-                  "dept": "English",
-                  "url": "https://www.amrita.edu/faculty/s-deepakumari"
-                },
-                {
-                  "id": "e-e-1-E-105-1",
-                  "x": 139,
-                  "y": 248,
-                  "desk": "E-105-02",
-                  "person": "Dr. Deepthi Janardhan",
-                  "role": "Assistant Professor (Sr. Gd.)",
-                  "dept": "English",
-                  "url": "https://www.amrita.edu/faculty/j-deepthi"
-                },
-                {
-                  "id": "e-e-1-E-105-2",
-                  "x": 225,
-                  "y": 248,
-                  "desk": "E-105-03",
-                  "person": "Dr. Sayant Vijay",
-                  "role": "Assistant Professor",
-                  "dept": "English",
-                  "url": "https://www.amrita.edu/faculty/sayant-vijay"
-                },
-                {
-                  "id": "e-e-1-E-105-3",
-                  "x": 53,
-                  "y": 284,
-                  "desk": "E-105-04",
-                  "person": "Dr. Smita Sail",
-                  "role": "Assistant Professor (Sl. Gd.)",
-                  "dept": "English",
-                  "url": "https://www.amrita.edu/faculty/s-smita"
-                },
-                {
-                  "id": "e-e-1-E-105-4",
-                  "x": 139,
-                  "y": 284,
-                  "desk": "E-105-05",
-                  "person": "Revathy Hemachandran",
-                  "role": "Assistant Professor",
-                  "dept": "English",
-                  "url": "https://www.amrita.edu/faculty/revathy-hemachandran"
-                }
-              ]
+                "Department": "Mathematics"
+              }
             },
             {
               "id": "e-e-1-5",
               "type": "classroom",
               "label": "E-106",
-              "name": "Classroom (80)",
+              "name": "Classroom",
               "shape": "rect",
-              "x": 266,
-              "y": 177,
-              "w": 200,
-              "h": 140,
-              "node": "n1",
-              "capacity": 80
-            },
-            {
-              "id": "e-e-1-6",
-              "type": "classroom",
-              "label": "E-107",
-              "name": "Smart Classroom",
-              "shape": "rect",
-              "x": 507,
-              "y": 177,
-              "w": 200,
-              "h": 140,
+              "x": 414,
+              "y": 180,
+              "w": 180,
+              "h": 110,
               "node": "n2",
               "capacity": 80
             },
             {
-              "id": "e-e-1-7",
+              "id": "e-e-1-6",
               "type": "support",
               "label": "E-108",
-              "name": "Drinking Water + WiFi",
+              "name": "Drinking Water",
               "shape": "rect",
-              "x": 748,
-              "y": 177,
-              "w": 226,
-              "h": 137,
+              "x": 608,
+              "y": 180,
+              "w": 180,
+              "h": 110,
               "node": "n3"
             },
             {
@@ -3964,7 +3850,7 @@ export const CAMPUS_FLOORS = {
               "name": "Staircase",
               "shape": "rect",
               "x": 465,
-              "y": 365,
+              "y": 340,
               "w": 70,
               "h": 50,
               "node": "n2"
@@ -3976,10 +3862,10 @@ export const CAMPUS_FLOORS = {
               "name": "Restrooms",
               "shape": "rect",
               "x": 850,
-              "y": 365,
+              "y": 340,
               "w": 66,
               "h": 50,
-              "node": "n3"
+              "node": "n4"
             }
           ]
         },
@@ -4033,191 +3919,95 @@ export const CAMPUS_FLOORS = {
           "spaces": [
             {
               "id": "e-e-2-0",
-              "type": "classroom",
-              "label": "E-201",
-              "name": "Classroom (80)",
+              "type": "hall",
+              "label": "Vyasa",
+              "name": "Vyasa Hall",
               "shape": "rect",
               "x": 26,
               "y": 26,
               "w": 200,
               "h": 140,
               "node": "n0",
-              "capacity": 80
+              "capacity": 90
             },
             {
               "id": "e-e-2-1",
-              "type": "classroom",
-              "label": "E-202",
-              "name": "Classroom (80)",
+              "type": "hall",
+              "label": "Rama",
+              "name": "Rama Hall",
               "shape": "rect",
-              "x": 266,
+              "x": 240,
               "y": 26,
               "w": 200,
               "h": 140,
               "node": "n1",
-              "capacity": 80
+              "capacity": 85
             },
             {
               "id": "e-e-2-2",
-              "type": "lab",
-              "label": "E-203",
-              "name": "Computer Lab",
+              "type": "hall",
+              "label": "Valmiki",
+              "name": "Valmiki Hall",
               "shape": "rect",
-              "x": 507,
+              "x": 454,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 200,
+              "h": 140,
               "node": "n2",
-              "capacity": 60
+              "capacity": 80
             },
             {
               "id": "e-e-2-3",
-              "type": "office",
-              "label": "E-204",
-              "name": "SoE Faculty Room 1",
+              "type": "hall",
+              "label": "Conference",
+              "name": "Conference Hall",
               "shape": "rect",
-              "x": 748,
+              "x": 668,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 180,
+              "h": 140,
               "node": "n3",
-              "meta": {
-                "Department": "SoE"
-              },
-              "seats": [
-                {
-                  "id": "e-e-2-E-204-0",
-                  "x": 775,
-                  "y": 97,
-                  "desk": "E-204-01",
-                  "person": "Dr. B. Venkatesh",
-                  "role": "Professor",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/b-venkatesh"
-                },
-                {
-                  "id": "e-e-2-E-204-1",
-                  "x": 818,
-                  "y": 97,
-                  "desk": "E-204-02",
-                  "person": "Dr. Geetha K. N.",
-                  "role": "Assistant Professor (Sl. Gd.)",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/kn-geetha"
-                },
-                {
-                  "id": "e-e-2-E-204-2",
-                  "x": 861,
-                  "y": 97,
-                  "desk": "E-204-03",
-                  "person": "Dr. K. Murali",
-                  "role": "Assistant Professor (Sl. Gd.)",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/k-murali"
-                },
-                {
-                  "id": "e-e-2-E-204-3",
-                  "x": 904,
-                  "y": 97,
-                  "desk": "E-204-04",
-                  "person": "Dr. K. N. Meera",
-                  "role": "Associate Professor",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/kn-meera"
-                },
-                {
-                  "id": "e-e-2-E-204-4",
-                  "x": 947,
-                  "y": 97,
-                  "desk": "E-204-05",
-                  "person": "Dr. K. N. Venkatachalaiah",
-                  "role": "Associate Professor",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/kn-venkatachalaiah"
-                },
-                {
-                  "id": "e-e-2-E-204-5",
-                  "x": 775,
-                  "y": 133,
-                  "desk": "E-204-06",
-                  "person": "Dr. Kumaraswamy G. N.",
-                  "role": "Associate Professor",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/gnk-swamy"
-                },
-                {
-                  "id": "e-e-2-E-204-6",
-                  "x": 818,
-                  "y": 133,
-                  "desk": "E-204-07",
-                  "person": "Dr. Sasangan Ramanathan",
-                  "role": "Dean Faculty",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/sasangan"
-                },
-                {
-                  "id": "e-e-2-E-204-7",
-                  "x": 861,
-                  "y": 133,
-                  "desk": "E-204-08",
-                  "person": "Dr. V. Kesavulu Naidu",
-                  "role": "Associate Professor",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/v-kesavulu"
-                },
-                {
-                  "id": "e-e-2-E-204-8",
-                  "x": 904,
-                  "y": 133,
-                  "desk": "E-204-09",
-                  "person": "Rajesh R.",
-                  "role": "Assistant Professor",
-                  "dept": "School of Engineering",
-                  "url": "https://www.amrita.edu/faculty/r-rajesh"
-                }
-              ]
+              "capacity": 27
             },
             {
               "id": "e-e-2-4",
               "type": "classroom",
               "label": "E-205",
-              "name": "Classroom (80)",
+              "name": "Classroom",
               "shape": "rect",
               "x": 26,
-              "y": 177,
-              "w": 200,
-              "h": 140,
+              "y": 180,
+              "w": 180,
+              "h": 110,
               "node": "n0",
               "capacity": 80
             },
             {
               "id": "e-e-2-5",
-              "type": "classroom",
+              "type": "office",
               "label": "E-206",
-              "name": "Classroom (80)",
+              "name": "Faculty Room",
               "shape": "rect",
-              "x": 266,
-              "y": 177,
-              "w": 200,
-              "h": 140,
+              "x": 220,
+              "y": 180,
+              "w": 180,
+              "h": 110,
               "node": "n1",
-              "capacity": 80
+              "meta": {
+                "Department": "SoE"
+              }
             },
             {
               "id": "e-e-2-6",
               "type": "lab",
               "label": "E-207",
-              "name": "AIE Research Lab",
+              "name": "Research Lab",
               "shape": "rect",
-              "x": 507,
-              "y": 177,
-              "w": 226,
-              "h": 137,
-              "node": "n2",
-              "capacity": 30,
-              "meta": {
-                "Department": "AIE"
-              }
+              "x": 414,
+              "y": 180,
+              "w": 180,
+              "h": 110,
+              "node": "n2"
             },
             {
               "id": "e-e-2-7",
@@ -4225,12 +4015,11 @@ export const CAMPUS_FLOORS = {
               "label": "E-208",
               "name": "Innovation Lab",
               "shape": "rect",
-              "x": 748,
-              "y": 177,
-              "w": 226,
-              "h": 137,
-              "node": "n3",
-              "capacity": 40
+              "x": 608,
+              "y": 180,
+              "w": 180,
+              "h": 110,
+              "node": "n3"
             },
             {
               "id": "e-e-2-st",
@@ -4239,7 +4028,7 @@ export const CAMPUS_FLOORS = {
               "name": "Staircase",
               "shape": "rect",
               "x": 465,
-              "y": 365,
+              "y": 340,
               "w": 70,
               "h": 50,
               "node": "n2"
@@ -4251,10 +4040,10 @@ export const CAMPUS_FLOORS = {
               "name": "Restrooms",
               "shape": "rect",
               "x": 850,
-              "y": 365,
+              "y": 340,
               "w": 66,
               "h": 50,
-              "node": "n3"
+              "node": "n4"
             }
           ]
         },
@@ -4308,160 +4097,94 @@ export const CAMPUS_FLOORS = {
           "spaces": [
             {
               "id": "e-e-3-0",
-              "type": "classroom",
-              "label": "E-301",
-              "name": "Classroom (80)",
+              "type": "hall",
+              "label": "Indo-US",
+              "name": "Indo-US Corporate Classroom",
               "shape": "rect",
               "x": 26,
               "y": 26,
-              "w": 200,
+              "w": 230,
               "h": 140,
               "node": "n0",
-              "capacity": 80
+              "capacity": 62
             },
             {
               "id": "e-e-3-1",
-              "type": "lab",
-              "label": "E-302",
-              "name": "Research Lab",
+              "type": "hall",
+              "label": "E-Learning",
+              "name": "E-Learning Studio",
               "shape": "rect",
-              "x": 266,
+              "x": 270,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 230,
+              "h": 140,
               "node": "n1",
-              "capacity": 30
+              "capacity": 120
             },
             {
               "id": "e-e-3-2",
-              "type": "office",
-              "label": "E-303",
-              "name": "AIE Faculty Room",
+              "type": "hall",
+              "label": "Akshaya",
+              "name": "Akshaya Hall",
               "shape": "rect",
-              "x": 507,
+              "x": 514,
               "y": 26,
-              "w": 226,
-              "h": 137,
+              "w": 200,
+              "h": 140,
               "node": "n2",
-              "meta": {
-                "Department": "AIE"
-              },
-              "seats": [
-                {
-                  "id": "e-e-3-E-303-0",
-                  "x": 534,
-                  "y": 97,
-                  "desk": "E-303-01",
-                  "person": "Dr. Soman K. P.",
-                  "role": "Dean, Professor",
-                  "dept": "AIE",
-                  "url": "https://www.amrita.edu/faculty/soman-k-p/"
-                },
-                {
-                  "id": "e-e-3-E-303-1",
-                  "x": 600,
-                  "y": 97,
-                  "desk": "E-303-02",
-                  "person": "Dr. Sowmya V",
-                  "role": "Associate Professor",
-                  "dept": "AIE",
-                  "url": "https://www.amrita.edu/faculty/sowmya-v/"
-                },
-                {
-                  "id": "e-e-3-E-303-2",
-                  "x": 666,
-                  "y": 97,
-                  "desk": "E-303-03",
-                  "person": "Dr. Gopalakrishnan E. A.",
-                  "role": "Principal Professor",
-                  "dept": "AIE",
-                  "url": "https://www.amrita.edu/faculty/gopalakrishnan-e-a/"
-                },
-                {
-                  "id": "e-e-3-E-303-3",
-                  "x": 534,
-                  "y": 133,
-                  "desk": "E-303-04",
-                  "person": "Vijay Krishna Menon",
-                  "role": "Assistant Professor",
-                  "dept": "AIE",
-                  "url": "https://www.amrita.edu/faculty/vijay-krishna-menon/"
-                },
-                {
-                  "id": "e-e-3-E-303-4",
-                  "x": 600,
-                  "y": 133,
-                  "desk": "E-303-05",
-                  "person": "Dr. Sajith Variyar V. V.",
-                  "role": "Assistant Professor (Sr. Gd.)",
-                  "dept": "AIE",
-                  "url": "https://www.amrita.edu/faculty/sajith-variyar/"
-                }
-              ]
+              "capacity": 100
             },
             {
               "id": "e-e-3-3",
-              "type": "admin",
-              "label": "E-304",
-              "name": "Research Centre Office",
-              "shape": "rect",
-              "x": 748,
-              "y": 26,
-              "w": 226,
-              "h": 137,
-              "node": "n3"
-            },
-            {
-              "id": "e-e-3-4",
               "type": "classroom",
-              "label": "E-305",
-              "name": "Classroom (80)",
+              "label": "E-304",
+              "name": "Classroom",
               "shape": "rect",
               "x": 26,
-              "y": 177,
-              "w": 200,
-              "h": 140,
+              "y": 180,
+              "w": 180,
+              "h": 110,
               "node": "n0",
               "capacity": 80
             },
             {
-              "id": "e-e-3-5",
-              "type": "classroom",
-              "label": "E-306",
-              "name": "Classroom (80)",
+              "id": "e-e-3-4",
+              "type": "office",
+              "label": "E-303",
+              "name": "Faculty Room",
               "shape": "rect",
-              "x": 266,
-              "y": 177,
-              "w": 200,
-              "h": 140,
+              "x": 220,
+              "y": 180,
+              "w": 180,
+              "h": 110,
               "node": "n1",
-              "capacity": 80
+              "meta": {
+                "Department": "AIE"
+              }
             },
             {
-              "id": "e-e-3-6",
+              "id": "e-e-3-5",
               "type": "lab",
               "label": "E-307",
               "name": "Project Lab",
               "shape": "rect",
-              "x": 507,
-              "y": 177,
-              "w": 226,
-              "h": 137,
-              "node": "n2",
-              "capacity": 40
+              "x": 414,
+              "y": 180,
+              "w": 180,
+              "h": 110,
+              "node": "n2"
             },
             {
-              "id": "e-e-3-7",
-              "type": "amenity",
+              "id": "e-e-3-6",
+              "type": "support",
               "label": "E-308",
               "name": "Reading Hall",
               "shape": "rect",
-              "x": 748,
-              "y": 177,
-              "w": 250,
-              "h": 160,
-              "node": "n3",
-              "capacity": 150
+              "x": 608,
+              "y": 180,
+              "w": 180,
+              "h": 110,
+              "node": "n3"
             },
             {
               "id": "e-e-3-st",
@@ -4470,7 +4193,7 @@ export const CAMPUS_FLOORS = {
               "name": "Staircase",
               "shape": "rect",
               "x": 465,
-              "y": 365,
+              "y": 340,
               "w": 70,
               "h": 50,
               "node": "n2"
@@ -4482,10 +4205,10 @@ export const CAMPUS_FLOORS = {
               "name": "Restrooms",
               "shape": "rect",
               "x": 850,
-              "y": 365,
+              "y": 340,
               "w": 66,
               "h": 50,
-              "node": "n3"
+              "node": "n4"
             }
           ]
         },
@@ -4674,4 +4397,4 @@ export const CAMPUS_FLOORS = {
       ]
     }
   }
-};
+} as const;

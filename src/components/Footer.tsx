@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Github, Heart, Instagram, Linkedin, Mail, MapPin, Twitter } from 'lucide-react';
+import { Heart, Instagram, Linkedin, Mail, MapPin } from 'lucide-react';
 import { Logo } from './Logo';
 import { useBrand } from '@/hooks/useBrand';
 
@@ -19,11 +19,9 @@ const COMPANY_LINKS = [
 ];
 
 const SOCIALS = [
-  { href: 'https://twitter.com', label: 'Twitter / X', icon: Twitter },
-  { href: 'https://facebook.com', label: 'Facebook', icon: Facebook },
-  { href: 'https://instagram.com', label: 'Instagram', icon: Instagram },
-  { href: 'https://linkedin.com', label: 'LinkedIn', icon: Linkedin },
-  { href: 'https://github.com', label: 'GitHub', icon: Github },
+  { href: 'https://www.instagram.com/civiceye_offcial/', label: 'Instagram', icon: Instagram },
+  { href: 'https://www.linkedin.com/in/civiceye-official-21296242b', label: 'LinkedIn', icon: Linkedin },
+  { href: 'mailto:info@civiceye.co.in', label: 'Email', icon: Mail },
 ];
 
 /** Site-wide footer. */
@@ -83,11 +81,11 @@ export function Footer() {
               ))}
             </ul>
             <a
-              href="mailto:civiceyeoffcial@gmail.com"
+              href="mailto:info@civiceye.co.in"
               className="mt-4 flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400"
             >
               <Mail className="h-4 w-4" />
-              civiceyeoffcial@gmail.com
+              info@civiceye.co.in
             </a>
           </nav>
 
@@ -111,7 +109,7 @@ export function Footer() {
               ))}
             </div>
             <p className="mt-4 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
-              Prototype build — all data shown is simulated for demo purposes.
+              Making cities better, one report at a time.
             </p>
           </div>
         </div>
@@ -123,13 +121,13 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-5 text-xs text-slate-400 dark:text-slate-500">
             <Link
-              to="/about"
+              to="/privacy"
               className="transition-colors hover:text-primary-600 dark:hover:text-primary-400"
             >
               Privacy
             </Link>
             <Link
-              to="/about"
+              to="/terms"
               className="transition-colors hover:text-primary-600 dark:hover:text-primary-400"
             >
               Terms

@@ -1,17 +1,6 @@
 /**
- * Vercel serverless function — Roboflow proxy.
- *
- * The browser cannot call Roboflow directly (their serverless workflow
- * endpoint omits `Access-Control-Allow-Origin` in the preflight, so the
- * browser blocks it → CORS error). This function forwards the request
- * from OUR origin (no CORS) and returns Roboflow's JSON unchanged.
- *
- * Body: { "image": "<base64>", "api_key"?: "<key>", "model"?: "<model/version>" }
- *  - no `model`  → runs the WORKFLOW (workspace + workflow_id)
- *  - with `model` → runs a standard detect.roboflow.com model
- *
- * The key is read from server env first (ROBOFLOW_API_KEY), then the
- * VITE_ variant, then (dev proxy only) the client-sent key.
+ * Vercel serverless function — Roboflow proxy (working version)
+ * Fixes NetworkError by adding 8s timeout to avoid Hobby 10s kill
  */
 
 const WORKFLOW_BASE = 'https://serverless.roboflow.com';
@@ -45,14 +34,17 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (image.length > 12 * 1024 * 1024) {
+    res.status(413).json({ error: 'Image too large. Max ~8MB base64.' });
+    return;
+  }
+
   let target;
   let payload;
   if (model) {
-    // Standard detect endpoint → returns per-box predictions.
     target = `${DETECT_BASE}/${model.replace(/^\/+/, '')}?api_key=${encodeURIComponent(apiKey)}`;
     payload = JSON.stringify({ image });
   } else {
-    // Workflow endpoint (primary).
     target = `${WORKFLOW_BASE}/${encodeURIComponent(workspace)}/workflows/${encodeURIComponent(workflowId)}`;
     payload = JSON.stringify({
       api_key: apiKey,
@@ -61,14 +53,26 @@ export default async function handler(req, res) {
   }
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const rf = await fetch(target, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeout);
     const text = await rf.text();
     res.status(rf.status).setHeader('Content-Type', 'application/json').send(text);
   } catch (err) {
-    res.status(502).json({ error: `Roboflow proxy failed: ${err?.message ?? err}` });
+    const isAbort = err.name === 'AbortError';
+    console.error('[roboflow proxy] error:', err.message);
+    res.status(isAbort ? 504 : 502).json({ 
+      error: `Roboflow proxy failed: ${err?.message ?? err}`,
+      hint: isAbort ? 'Timeout after 8s — Vercel Hobby limit 10s, workflow may be slow. Will fallback to on-device AI with exact outline.' : 'Check ROBOFLOW_API_KEY in Vercel env, or will fallback to exact outline mock',
+      fallback: true
+    });
   }
 }

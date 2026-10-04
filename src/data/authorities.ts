@@ -127,7 +127,7 @@ export const AUTHORITIES: Authority[] = [
     color: '#f59e0b',
     scope: 'campus',
     categories: ['pothole', 'broken-road', 'sidewalk', 'manhole', 'fallen-tree', 'other'],
-    email: 'civiceyeoffcial@gmail.com', // routed to campus staff via team
+    email: 'info@civiceye.co.in', // routed to campus staff via team
     phoneNote: 'Report to campus estate staff',
     address: 'Estate Office, Admin Block, Amrita Campus',
     hours: 'Mon–Sat 9:00–17:00',
@@ -140,7 +140,7 @@ export const AUTHORITIES: Authority[] = [
     color: '#38bdf8',
     scope: 'campus',
     categories: ['garbage', 'sewage', 'water-leakage', 'street-light'],
-    email: 'civiceyeoffcial@gmail.com',
+    email: 'info@civiceye.co.in',
     phoneNote: 'Report to campus facilities staff',
     address: 'Facilities Office, Ground Floor, Admin Block',
     hours: 'Mon–Sat 8:30–17:30',
@@ -153,7 +153,7 @@ export const AUTHORITIES: Authority[] = [
     color: '#fb7185',
     scope: 'campus',
     categories: ['security', 'accident'],
-    email: 'civiceyeoffcial@gmail.com',
+    email: 'info@civiceye.co.in',
     phoneNote: '24×7 campus security line',
     address: 'Security Control Room, Main Gate',
     hours: '24×7 emergency line',
@@ -184,6 +184,118 @@ export function authorityForCategory(
   }
   return scoped[0] ?? AUTHORITIES[0];
 }
+
+/* ====================================================================
+ *  Higher-authority escalation chain (SLA-breach).
+ *
+ *  When a report breaches its SLA deadline it moves up a level — these
+ *  are the *next* offices citizens can escalate to. Public grievance
+ *  channels only (official portals + published control rooms). Phone
+ *  numbers go into a tel:/sms: link, whatsapp into wa.me/, email into
+ *  the server-side sender or mailto: fallback.
+ * ==================================================================== */
+
+export const HIGHER_AUTHORITIES: Record<
+  'city' | 'campus',
+  Record<number, Authority>
+> = {
+  city: {
+    1: {
+      id: 'bbmp-commissioner',
+      name: 'BBMP Commissioner',
+      department: 'Office of the Commissioner · Grievance Cell (Level 1 escalation)',
+      color: '#ef4444',
+      scope: 'city',
+      categories: ['pothole', 'broken-road', 'sidewalk', 'manhole', 'garbage', 'illegal-dumping', 'water-leakage', 'sewage', 'street-light', 'traffic-signal', 'fallen-tree', 'accident', 'other'],
+      email: 'comm@bbmp.gov.in',
+      phone: '+918022660000',
+      phoneNote: 'BBMP control room 080-2266 0000 · 1533',
+      whatsapp: ['919480685700'],
+      whatsappNote: 'BBMP Commissioner grievance WhatsApp',
+      address: 'BBMP Head Office, N R Square, Bengaluru 560002',
+      hours: '24×7 control room',
+      portalUrl: 'https://www.bbmp.gov.in',
+      portalLabel: 'BBMP Commissioner grievance',
+      source: 'bbmp.gov.in',
+    },
+    2: {
+      id: 'bbmp-chief-mayor',
+      name: 'BBMP Chief Commissioner + Mayor',
+      department: 'Office of the Chief Commissioner & Mayor (Level 2 escalation)',
+      color: '#dc2626',
+      scope: 'city',
+      categories: ['pothole', 'broken-road', 'sidewalk', 'manhole', 'garbage', 'illegal-dumping', 'water-leakage', 'sewage', 'street-light', 'traffic-signal', 'fallen-tree', 'accident', 'other'],
+      email: 'comm@bbmp.gov.in',
+      phone: '+918022660000',
+      phoneNote: 'BBMP control room — ask for Chief Commissioner desk',
+      whatsapp: ['919480685700'],
+      address: 'BBMP Head Office, N R Square, Bengaluru 560002',
+      hours: 'Control room 24×7',
+      portalUrl: 'https://www.bbmp.gov.in',
+      portalLabel: 'BBMP — Mayor / Chief Commissioner cell',
+      source: 'bbmp.gov.in',
+    },
+    3: {
+      id: 'ka-udd',
+      name: 'Karnataka Urban Development Department',
+      department: 'Principal Secretary, UDD — Govt. of Karnataka (Level 3 escalation)',
+      color: '#b91c1c',
+      scope: 'city',
+      categories: ['pothole', 'broken-road', 'sidewalk', 'manhole', 'garbage', 'illegal-dumping', 'water-leakage', 'sewage', 'street-light', 'traffic-signal', 'fallen-tree', 'accident', 'other'],
+      email: 'secyudd@karnataka.gov.in',
+      phone: '08022034204',
+      phoneNote: 'UDD Secretariat 080-2203 4204',
+      address: 'Vikasa Soudha, Dr Ambedkar Road, Bengaluru 560001',
+      hours: 'Mon–Fri 10:00–17:30',
+      portalUrl: 'https://www.karnataka.gov.in/udd',
+      portalLabel: 'Karnataka UDD public grievance',
+      source: 'karnataka.gov.in/udd',
+    },
+  },
+  campus: {
+    1: {
+      id: 'amrita-dean',
+      name: 'Dean / Director Office',
+      department: 'Office of the Dean — Campus Administration (Level 1 escalation)',
+      color: '#ef4444',
+      scope: 'campus',
+      categories: ['pothole', 'broken-road', 'sidewalk', 'manhole', 'fallen-tree', 'garbage', 'sewage', 'water-leakage', 'street-light', 'security', 'accident', 'other'],
+      email: 'info@civiceye.co.in',
+      phoneNote: 'Route through Estate Office to Dean office',
+      address: 'Admin Block, Amrita Campus',
+      hours: 'Mon–Fri 9:00–17:00',
+      source: 'Campus directory',
+    },
+    2: {
+      id: 'amrita-vc',
+      name: 'Vice Chancellor Office',
+      department: 'Office of the Vice Chancellor (Level 2 escalation)',
+      color: '#dc2626',
+      scope: 'campus',
+      categories: ['pothole', 'broken-road', 'sidewalk', 'manhole', 'fallen-tree', 'garbage', 'sewage', 'water-leakage', 'street-light', 'security', 'accident', 'other'],
+      email: 'info@civiceye.co.in',
+      phoneNote: 'Route through the Dean/PRO to VC office',
+      address: 'University HQ, Amrita Vishwa Vidyapeetham',
+      hours: 'Mon–Fri 9:00–17:00',
+      source: 'Campus directory',
+    },
+  },
+};
+
+/**
+ * Return the higher-level Authority a breached report should be escalated to.
+ * `nextLevel` = current level + 1 (capped at the top of the chain).
+ */
+export function escalationAuthorityFor(
+  scope: 'city' | 'campus',
+  currentLevel: number,
+): Authority | null {
+  const chain = HIGHER_AUTHORITIES[scope];
+  const nextLevel = Math.min(currentLevel + 1, 3);
+  return chain[nextLevel] ?? chain[3] ?? null;
+}
+
+/* ------------------------------------------------------------------ */
 
 /** tel: link for an authority phone number. */
 export const telLink = (a: Authority): string | undefined =>

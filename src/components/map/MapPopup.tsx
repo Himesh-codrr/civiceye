@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowBigUp, Calendar, Crosshair, MapPin, Navigation, ShieldCheck, X } from 'lucide-react';
+import { ArrowBigUp, Calendar, Crosshair, Eye, MapPin, Navigation, ShieldCheck, X } from 'lucide-react';
 import type { Report } from '@/types';
 import { categoryById, SEVERITY_META, STATUS_META } from '@/data/categories';
 import { formatCoordsShort, formatDate } from '@/utils/format';
@@ -15,7 +16,8 @@ interface MapPopupProps {
 
 /**
  * Marker popup content — shared by the Google InfoWindow and the
- * built-in fallback map overlay.
+ * built-in fallback map overlay. Toggles between the citizen's photo
+ * and the AI-annotated version when AI has produced an overlay.
  */
 export function MapPopup({ report, onClose }: MapPopupProps) {
   const category = categoryById(report.category);
@@ -23,11 +25,14 @@ export function MapPopup({ report, onClose }: MapPopupProps) {
   const status = STATUS_META[report.status];
   const { voteUp } = useReports();
   const toast = useToast();
+  const annotatedImage = (report as any).annotatedImage || (report.ai as any)?.annotatedImage || null;
+  const [showAI, setShowAI] = useState(false);
+  const displayedImage = showAI && annotatedImage ? annotatedImage : report.image;
 
   return (
     <div className="w-[300px] overflow-hidden rounded-2xl bg-white text-left shadow-xl dark:bg-slate-900 sm:w-[330px]">
       <div className="relative">
-        <img src={report.image} alt={report.title} className="h-36 w-full object-cover" />
+        <img src={displayedImage} alt={report.title} className="h-36 w-full object-cover" referrerPolicy="no-referrer" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent" />
         <button
           onClick={onClose}
@@ -36,6 +41,20 @@ export function MapPopup({ report, onClose }: MapPopupProps) {
         >
           <X className="h-4 w-4" />
         </button>
+        {annotatedImage ? (
+          <button
+            onClick={() => setShowAI((v) => !v)}
+            className={cn(
+              'absolute left-2 top-2 flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold backdrop-blur transition-colors',
+              showAI
+                ? 'bg-emerald-500 text-white'
+                : 'bg-white/90 text-slate-700 hover:bg-white dark:bg-slate-800/90 dark:text-slate-200',
+            )}
+          >
+            <Eye className="h-3 w-3" />
+            {showAI ? 'AI view ✓' : 'View AI'}
+          </button>
+        ) : null}
         <div className="absolute bottom-2 left-2 flex gap-1.5">
           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-700 backdrop-blur dark:bg-slate-900/80 dark:text-slate-200">
             {category.label}

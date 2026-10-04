@@ -37,12 +37,15 @@ import { Loader } from '@/components/Loader';
 import { useReports } from '@/hooks/useReports';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
+import { TwoFactorGate } from '@/components/TwoFactorGate';
+import { isGuest } from '@/utils/guest';
 import { ANALYSIS_STAGES, analysisTotalMs, runImageAnalysis } from '@/services/aiAnalysisService';
 import { roboflowStatus } from '@/services/roboflowService';
 import { requestLocation } from '@/services/geoService';
 import { mockReverseGeocode } from '@/services/geocodeService';
 import { publishPhoto } from '@/services/syncService';
-import { uploadReportPhoto } from '@/lib/storage';
+import { uploadReportPhoto, uploadAnnotatedPhoto } from '@/lib/storage';
+import { sanitizeInput, validateImageDataUrl, checkRateLimit, containsSuspiciousContent, logAudit } from '@/lib/security';
 import { displayName } from '@/services/reportService';
 import { CAMPUS_CONFIG, isInsideCampus } from '@/data/campus';
 import { formatCoords } from '@/utils/format';
@@ -93,7 +96,8 @@ function ReportWizard() {
   const { addReport, getById } = useReports();
   const toast = useToast();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, configured } = useAuth();
+  const [mfaGateOpen, setMfaGateOpen] = useState(false);
   const { isAmrita } = useBrand();
   const availableCategories = getAvailableCategories(isAmrita);
   const [uploading, setUploading] = useState(false);
@@ -221,13 +225,50 @@ function ReportWizard() {
       navigate('/login?next=/report');
       return;
     }
+    // Security: rate limiting - 5 reports per 10 minutes
+    if (!checkRateLimit(`report:${user.id}`, 5, 10 * 60 * 1000)) {
+      toast.error('Too many reports', 'Please wait 10 minutes before submitting another report. Rate limit for security.');
+      return;
+    }
+    // Security: validate image
+    if (draft.photo) {
+      const imgCheck = validateImageDataUrl(draft.photo);
+      if (!imgCheck.valid) {
+        toast.error('Invalid image', imgCheck.error || 'Please upload a valid JPEG/PNG/WebP image under 10MB.');
+        return;
+      }
+    }
+    // Security: sanitize and check suspicious
+    const sanitizedTitle = sanitizeInput(draft.title);
+    const sanitizedDesc = sanitizeInput(draft.description);
+    if (containsSuspiciousContent(draft.title) || containsSuspiciousContent(draft.description)) {
+      toast.error('Invalid content', 'Your report contains suspicious content that was blocked for security.');
+      logAudit('blocked_suspicious_report', { userId: user.id, details: `Title: ${draft.title.slice(0,100)}` });
+      return;
+    }
+    if (!sanitizedTitle || sanitizedTitle.length < 5) {
+      toast.error('Title too short', 'Please provide a more descriptive title (min 5 chars).');
+      return;
+    }
+    if (!sanitizedDesc || sanitizedDesc.length < 10) {
+      toast.error('Description too short', 'Please provide more details (min 10 chars).');
+      return;
+    }
     setUploading(true);
     try {
-      // Upload the photo to Supabase Storage, then save the report row.
+      // Upload both original and AI annotated photos to Supabase Storage (two instances per your request)
       const photoUrl = await uploadReportPhoto(draft.photo, user.id);
+      let annotatedUrl: string | null = null;
+      if (draft.analysis?.annotatedImage) {
+        try {
+          annotatedUrl = await uploadAnnotatedPhoto(draft.analysis.annotatedImage, user.id);
+        } catch {
+          annotatedUrl = draft.analysis.annotatedImage;
+        }
+      }
       const report = await addReport({
-        title: draft.title.trim(),
-        description: draft.description.trim(),
+        title: sanitizedTitle,
+        description: sanitizedDesc,
         coordinates: draft.coordinates,
         locationName: draft.locationName || mockReverseGeocode(draft.coordinates),
         category: draft.category,
@@ -251,8 +292,11 @@ function ReportWizard() {
           imageQuality: draft.analysis.imageQuality ?? null,
           disclaimer:
             'AI confidence is an estimate and may be inaccurate. Verify the issue before acting.',
+          annotatedImage: annotatedUrl || draft.analysis.annotatedImage || null,
+          originalImage: photoUrl,
         },
       });
+      logAudit('report_created', { userId: user.id, reportId: report.id, details: `${sanitizedTitle} - ${report.category}` });
       setCreatedId(report.id);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -287,6 +331,14 @@ function ReportWizard() {
 
   return (
     <div className="pb-20 pt-[calc(var(--nav-height)+2.5rem)] sm:pt-[calc(var(--nav-height)+3.5rem)]">
+      <TwoFactorGate
+        open={mfaGateOpen}
+        onClose={() => setMfaGateOpen(false)}
+        onVerified={() => {
+          setMfaGateOpen(false);
+          void submit();
+        }}
+      />
       <div className="section-pad">
         <div className="mb-10">
           <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400">
@@ -504,7 +556,13 @@ function ReportWizard() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => void submit()}
+                      onClick={() => {
+                        if (configured && user && !isGuest()) {
+                          setMfaGateOpen(true);
+                        } else {
+                          void submit();
+                        }
+                      }}
                       disabled={!canContinue || uploading}
                       className="btn-primary"
                     >
@@ -804,7 +862,7 @@ function AnalysisResultCard({
             </>
           )}
         </p>
-        {/* Config warning — Roboflow is the primary engine; if it's skipped
+        {/* Config warning — CivicLENS AI is the primary engine; if it's skipped
             due to missing env vars, say so instead of hiding it. */}
         {analysis.engine !== 'roboflow' ? (
           (() => {
@@ -814,7 +872,7 @@ function AnalysisResultCard({
                 <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                   <Info className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
-                    <strong>Roboflow not active:</strong> {rf.reason} Falling back to the next engine.
+                    <strong>CivicLENS AI not active:</strong> {rf.reason} Falling back to the next engine.
                   </span>
                 </p>
               );
@@ -1412,6 +1470,7 @@ function PhoneCapture({ sessionId }: { sessionId: string }) {
           </div>
         )}
       </div>
+
     </div>
   );
 }

@@ -1,5 +1,4 @@
 /**
- * Amrita Bengaluru Campus — extended public information
  * Amrita Bengaluru Campus — public information
  */
 
@@ -14,10 +13,6 @@ export const CAMPUS_ADDRESS = {
 };
 
 export const CAMPUS_STATS = {
-  totalAcresOfficial: 50,
-  totalAcresMeasured: 37.2,
-  academicAcres: 25.3,
-  residentialAcres: 11.8,
   buildings: 12,
   blocks: 5,
   floors: 15,
@@ -35,7 +30,7 @@ export const BLOCKS_INFO = [
     floors: 5,
     area: 2587,
     position: 'Main Campus',
-    highlights: ['Main Entrance & Reception', 'Administrative Office', "Director's Office", 'Amriteshwari Hall', 'Conference Hall', 'Medical Room', 'Central Library'],
+    highlights: ['Main Entrance & Reception', 'Administrative Office', "Director's Office", 'Medical Room', 'Central Library', 'All Halls'],
     color: '#A51636',
   },
   {
@@ -45,7 +40,7 @@ export const BLOCKS_INFO = [
     floors: 3,
     area: 2138,
     position: 'Academic Zone',
-    highlights: ['Sudhamani Hall', 'Faculty Rooms', 'Examination Office', 'Training & Placement Cell', 'Computer Labs', 'E-Learning Studio'],
+    highlights: ['Faculty Rooms', 'Examination Office', 'Training & Placement Cell', 'Computer Labs'],
     color: '#ef4444',
   },
   {
@@ -55,7 +50,7 @@ export const BLOCKS_INFO = [
     floors: 3,
     area: 2098,
     position: 'Academic Zone',
-    highlights: ['Krishna Hall', 'Faculty Rooms', 'Electronics Labs', 'Computer Labs', 'AI / ML Lab', 'Corporate Classroom'],
+    highlights: ['Faculty Rooms', 'Electronics Labs', 'Computer Labs', 'AI / ML Lab'],
     color: '#22c55e',
   },
   {
@@ -65,7 +60,7 @@ export const BLOCKS_INFO = [
     floors: 2,
     area: 2153,
     position: 'Academic Zone',
-    highlights: ['Valmiki Hall', 'Vyasa Hall', 'Rama Hall', 'Faculty Rooms', 'Computer Labs'],
+    highlights: ['Faculty Rooms', 'Computer Labs', 'Project Labs'],
     color: '#3b82f6',
   },
   {

@@ -1,0 +1,23 @@
+{
+  "name": "CivicEye — Report Bengaluru",
+  "short_name": "CivicEye",
+  "description": "Snap, pin, and report civic issues in your neighbourhood. Track fixes on a live community map.",
+  "start_url": "/?source=pwa",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff8e7",
+  "theme_color": "#172b44",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["civic-tech", "productivity", "utilities"],
+  "icons": [
+    { "src": "/civiceye-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Report an issue", "short_name": "Report", "url": "/report?source=pwa" },
+    { "name": "Live map", "short_name": "Map", "url": "/map?source=pwa" },
+    { "name": "Community feed", "short_name": "Feed", "url": "/community?source=pwa" }
+  ]
+}

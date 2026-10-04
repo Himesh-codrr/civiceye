@@ -71,12 +71,19 @@ export function AmritaHero() {
         </motion.p>
 
         {/* CTAs */}
-        <motion.div variants={itemVariants} className="mt-12 flex flex-col gap-4 sm:flex-row sm:justify-center">
+        <motion.div variants={itemVariants} className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
           <Link
             to="/report"
             className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#A51636] px-8 text-base font-semibold text-white transition-opacity hover:opacity-90 active:scale-95 dark:bg-[#E52B50]"
           >
             Report an issue
+          </Link>
+
+          <Link
+            to="/food-hygiene"
+            className="inline-flex h-14 items-center justify-center gap-2 rounded-full border-2 border-[#A51636] bg-[#fffdf4] px-6 text-sm font-bold uppercase tracking-wider text-[#A51636] shadow-[4px_4px_0_#A51636] transition hover:-translate-y-0.5 hover:bg-[#ffd630] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_#A51636]"
+          >
+            🍛 Mess / Food Hygiene — Anonymous
           </Link>
 
           <Link

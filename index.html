@@ -2,9 +2,17 @@
 <html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />
+    <link rel="icon" type="image/svg+xml" href="/civiceye-icon.svg" />
+    <link rel="apple-touch-icon" href="/civiceye-logo.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#172b44" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CivicEye" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Google Search Console domain ownership verification. Safe to keep permanently. -->
+    <meta name="google-site-verification" content="o3RftdxrPrh-mUPdczebvvmIIFuu-yphC7JvpBNBgZU" />
     <meta
       name="description"
       content="CivicEye — Making cities better, one report at a time. Report potholes, broken street lights, garbage dumps and more, then track them on a live community map."
@@ -20,5 +28,50 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <style>
+      /* Hide the floating civic-chat widget on auth/reset pages */
+      html[data-cve-hide="1"] #cve-root { display: none !important; }
+    </style>
+    <script>
+      (function () {
+        function refreshCveHide() {
+          var p = window.location.pathname;
+          var hide = (p.indexOf('/login') === 0 || p.indexOf('/auth/') === 0 || p.indexOf('/reset') === 0);
+          document.documentElement.setAttribute('data-cve-hide', hide ? '1' : '0');
+          var root = document.getElementById('cve-root');
+          if (root) root.style.display = hide ? 'none' : '';
+        }
+        refreshCveHide();
+        // React Router navigations don't reload the page — listen for push/replace/pop.
+        var origPush = history.pushState;
+        var origReplace = history.replaceState;
+        history.pushState = function () { var r = origPush.apply(this, arguments); refreshCveHide(); window.dispatchEvent(new Event('cve:nav')); return r; };
+        history.replaceState = function () { var r = origReplace.apply(this, arguments); refreshCveHide(); window.dispatchEvent(new Event('cve:nav')); return r; };
+        window.addEventListener('popstate', refreshCveHide);
+      })();
+    </script>
+    <script>
+      // Brand-aware chat widget config: re-reads the <html> class list to set
+      // title / subtitle / launcher color so Amrita Eye gets maroon branding,
+      // CivicEye gets coral/cream. We point the widget at /api/chat on the
+      // current origin so it works on the custom domain + Vercel previews.
+      function refreshCivicEyeChatConfig() {
+        var isAmrita = document.documentElement.classList.contains('amrita');
+        window.CivicEyeChatConfig = {
+          theme: isAmrita ? 'amrita' : 'civiceye',
+          title: isAmrita ? 'Amrita Eye Assistant' : 'CivicEye Assistant',
+          subtitle: isAmrita ? 'Ask about Estate Office, maps, AI' : 'Ask about reporting, BBMP, maps, AI',
+          placeholder: isAmrita
+            ? 'Ask about Estate Office, campus map, reporting...'
+            : 'Ask about reporting, BBMP, Estate Office, maps...',
+          endpoint: '/api/chat',
+        };
+      }
+      refreshCivicEyeChatConfig();
+      // Re-apply config if the brand class changes (after an @amrita.edu sign-in).
+      var mo = new MutationObserver(refreshCivicEyeChatConfig);
+      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    </script>
+    <script src="/civiceye-chat.js" defer></script>
   </body>
 </html>

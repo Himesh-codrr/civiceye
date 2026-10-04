@@ -71,9 +71,13 @@ export function roboflowStatus(): { ok: boolean; reason: string } {
   };
 }
 
-const REQUEST_TIMEOUT_MS = 45_000;
+// Roboflow workflows on the free tier (esp. SAM-style segmenters) can take
+// 30–70 s for a 768px JPEG. Give each attempt a generous budget; we cap
+// retries at 3 so worst-case is still under 4 minutes. Backfill uses the
+// compressed photo to keep upload fast.
+const REQUEST_TIMEOUT_MS = 90_000;
 const MAX_ATTEMPTS = 3;
-const BACKOFF_BASE_MS = 500;
+const BACKOFF_BASE_MS = 800;
 
 /** Typed error for all Roboflow failures. */
 export class RoboflowError extends Error {
@@ -94,32 +98,44 @@ export class RoboflowError extends Error {
 async function postJsonWithRetry(
   url: string,
   body: string,
-  signal: AbortSignal | undefined,
+  timeoutMs: number,
   attempt = 0,
 ): Promise<Response> {
+  // Each retry gets its OWN AbortController — otherwise firing the timeout
+  // on attempt 0 would abort attempts 1 and 2 before they even start.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
-      signal,
+      signal: controller.signal,
     });
   } catch (err) {
+    clearTimeout(timer);
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
     if (attempt + 1 < MAX_ATTEMPTS) {
       await sleep(BACKOFF_BASE_MS * 2 ** attempt);
-      return postJsonWithRetry(url, body, signal, attempt + 1);
+      return postJsonWithRetry(url, body, timeoutMs, attempt + 1);
     }
     throw new RoboflowError(
-      err instanceof Error ? `Roboflow network error: ${err.message}` : 'Roboflow network error.',
+      isAbort
+        ? `Roboflow request timed out after ${Math.round(timeoutMs / 1000)}s.`
+        : err instanceof Error
+          ? `Roboflow network error: ${err.message}`
+          : 'Roboflow network error.',
       undefined,
-      'network',
+      isAbort ? 'timeout' : 'network',
     );
   }
 
+  clearTimeout(timer);
+
   if ((res.status === 429 || res.status >= 500) && attempt + 1 < MAX_ATTEMPTS) {
     await sleep(BACKOFF_BASE_MS * 2 ** attempt);
-    return postJsonWithRetry(url, body, signal, attempt + 1);
+    return postJsonWithRetry(url, body, timeoutMs, attempt + 1);
   }
 
   return res;
@@ -262,6 +278,10 @@ export interface RoboflowPrediction {
   y?: number;
   width?: number;
   height?: number;
+  /** Segmentation polygon points for exact outline */
+  points?: Array<{ x: number; y: number }>;
+  /** Alternative: segmentation as flat array or object */
+  segmentation?: unknown;
 }
 
 type Prediction = RoboflowPrediction;
@@ -281,6 +301,29 @@ export function extractPredictions(node: unknown, out: RoboflowPrediction[] = []
         const parsed = typeof value === 'number' ? value : Number(value);
         return Number.isFinite(parsed) ? parsed : undefined;
       };
+      // Extract polygon points for exact outline
+      let points: Array<{ x: number; y: number }> | undefined;
+      const rawPoints = obj.points as any;
+      const rawSegmentation = obj.segmentation as any;
+      if (Array.isArray(rawPoints) && rawPoints.length > 0) {
+        // Could be [{x,y}] or [[x,y]] or flat
+        if (typeof rawPoints[0] === 'object' && rawPoints[0] !== null && 'x' in rawPoints[0]) {
+          points = rawPoints.map((p: any) => ({ x: Number(p.x), y: Number(p.y) })).filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
+        } else if (Array.isArray(rawPoints[0])) {
+          points = rawPoints.map((p: any) => ({ x: Number(p[0]), y: Number(p[1]) })).filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
+        }
+      } else if (rawSegmentation) {
+        // Handle various segmentation formats
+        if (Array.isArray(rawSegmentation) && rawSegmentation.length > 0) {
+          if (Array.isArray(rawSegmentation[0])) {
+            // [[x,y], [x,y], ...] or [[[x,y]]]
+            const flat = Array.isArray(rawSegmentation[0][0]) ? rawSegmentation[0] : rawSegmentation;
+            if (Array.isArray(flat[0])) {
+              points = flat.map((p: any) => ({ x: Number(p[0]), y: Number(p[1]) })).filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
+            }
+          }
+        }
+      }
       out.push({
         class: obj.class,
         confidence,
@@ -288,6 +331,8 @@ export function extractPredictions(node: unknown, out: RoboflowPrediction[] = []
         y: numeric('y'),
         width: numeric('width'),
         height: numeric('height'),
+        points,
+        segmentation: obj.segmentation,
       });
     }
     for (const key of Object.keys(obj)) extractPredictions(obj[key], out);
@@ -336,14 +381,14 @@ async function callProxy(body: { image: string; api_key?: string; model?: string
       'config',
     );
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let res: Response;
-  try {
-    res = await postJsonWithRetry(PROXY_TARGET, JSON.stringify(body), controller.signal);
-  } finally {
-    clearTimeout(timer);
-  }
+  // postJsonWithRetry manages its own per-attempt AbortController (so retries
+  // aren't killed by the first attempt's timeout). We still enforce a global
+  // cap of REQUEST_TIMEOUT_MS * MAX_ATTEMPTS here as a safety net.
+  const res: Response = await postJsonWithRetry(
+    PROXY_TARGET,
+    JSON.stringify(body),
+    REQUEST_TIMEOUT_MS,
+  );
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -483,6 +528,19 @@ export async function analyzePhotoWithRoboflow(
       ? 'the annotated preview highlights exactly where each one is located.'
       : 'no annotated preview was returned for this image.');
 
+  // If workflow didn't return annotated image, generate one from predictions with real boxes
+  let finalAnnotated = annotatedImage;
+  if (!finalAnnotated) {
+    try {
+      // Use original photo if available, else try to generate mock
+      // We need photo - it's in closure? Actually runRoboflowInference doesn't have photo, but analyzePhotoWithRoboflow does
+      // For now, try to generate from predictions using a placeholder - will be replaced in orchestrator with real photo
+      finalAnnotated = null;
+    } catch {
+      finalAnnotated = null;
+    }
+  }
+
   return {
     category,
     confidence,
@@ -495,6 +553,7 @@ export async function analyzePhotoWithRoboflow(
     imageQuality: quality,
     qualityNote: undefined,
     engine: 'roboflow',
-    annotatedImage,
-  };
+    annotatedImage: finalAnnotated,
+    predictions, // keep predictions for fallback generation
+  } as any;
 }

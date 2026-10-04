@@ -35,37 +35,56 @@ export interface Coordinates {
 /** A single civic issue report. */
 export interface Report {
   id: string;
-  /** Human friendly public code, e.g. "CE-1A2B3C4D". */
   code?: string;
   title: string;
   description: string;
   coordinates: Coordinates;
-  /** Human friendly area label, e.g. "Indiranagar, Bengaluru". */
   locationName: string;
   category: CategoryId;
   severity: Severity;
   status: ReportStatus;
-  /** Absolute URL, public path, or data-URL of the evidence photo. */
   image: string;
   upvotes: number;
   downvotes: number;
-  /** Net votes = upvotes - downvotes. */
   votes: number;
-  /** Number of neighbours who confirmed this report is real. */
   confirms: number;
-  /** Number of neighbours who rejected this report. */
   rejects: number;
-  /** ISO-8601 timestamp. */
   date: string;
   verified: boolean;
-  /** Public display name of the citizen (or "Anonymous citizen"). */
   author: string;
-  /** Authority agency currently handling it, when assigned. */
   assignedTo?: string;
-  /** Owning auth user id (uuid), when logged in. */
   userId?: string;
-  /** Which product this report belongs to: 'city' (CivicEye) or 'campus' (Amrita Eye). */
   scope: 'city' | 'campus';
+  ai?: {
+    confidence?: number;
+    objects?: string[];
+    summary?: string;
+    model?: string;
+    imageQuality?: string | null;
+    disclaimer?: string;
+    annotatedImage?: string | null;
+    originalImage?: string | null;
+  } | null;
+  proof?: {
+    beforeImage: string;
+    afterImage: string;
+    fixedDate: string;
+    verifiedByAI?: boolean;
+    aiConfidence?: number;
+    description?: string;
+  } | null;
+  escalation?: {
+    level: number;
+    escalatedAt: string;
+    reason: string;
+    nextAuthority?: string;
+  } | null;
+  sla?: {
+    deadline: string;
+    status: 'on-track' | 'at-risk' | 'breached';
+    escalated: boolean;
+    createdAt: string;
+  } | null;
 }
 
 /** A user profile (mirrors the `profiles` table). */
@@ -128,6 +147,17 @@ export interface AnalysisResult {
   engine?: 'ondevice' | 'roboflow' | 'huggingface' | 'mock';
   /** Annotated (drawn-on) image from a Roboflow workflow, as a data URL. */
   annotatedImage?: string | null;
+  /** Raw Roboflow predictions (class + confidence + bbox/polygon), used for
+   *  drawing exact outlines server-side and for the admin backfill tool. */
+  predictions?: Array<{
+    class: string;
+    confidence: number;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    points?: Array<{ x: number; y: number }>;
+  }>;
 }
 
 /** A toast notification shown by the ToastProvider. */

@@ -28,6 +28,9 @@ export interface ReportRow {
   location_name: string | null;
   photo_url: string | null;
   ai: unknown;
+  proof: unknown;
+  escalation: unknown;
+  sla: unknown;
   upvotes: number;
   downvotes: number;
   confirms: number;
@@ -60,6 +63,10 @@ export function mapRow(row: ReportRow): Report {
     author: row.author_name,
     assignedTo: row.assigned_to ?? undefined,
     userId: row.user_id ?? undefined,
+    ai: (row.ai as any) ?? null,
+    proof: (row.proof as any) ?? null,
+    escalation: (row.escalation as any) ?? null,
+    sla: (row.sla as any) ?? null,
   };
 }
 
@@ -134,8 +141,60 @@ export const reportService = {
   },
 
   /** Authority actions. */
-  async markResolved(id: string): Promise<void> {
-    await this.updateStatus(id, 'resolved');
+  async markResolved(id: string, resolverName?: string): Promise<Report | undefined> {
+    if (!supabase) {
+      await this.updateStatus(id, 'resolved');
+      return undefined;
+    }
+    const { data, error } = await supabase
+      .from('reports')
+      .update({ status: 'resolved' })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Best-effort thank-you email to the original reporter. Fire-and-forget
+    // so dashboard UX never blocks on SMTP.
+    const reporterUserId = (data as any)?.user_id;
+    let reporterEmail: string | null = null;
+    let reporterFullName: string | null = (data as any)?.author_name || null;
+    if (reporterUserId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', reporterUserId)
+        .maybeSingle();
+      if (profile) {
+        reporterEmail = (profile as any).email || null;
+        reporterFullName = (profile as any).full_name || reporterFullName;
+      }
+    }
+    if (reporterEmail) {
+      const webhookSecret = (import.meta as any)?.env?.VITE_EMAIL_WEBHOOK_SECRET || '';
+      fetch('/api/report-resolved', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(webhookSecret ? { 'x-webhook-secret': webhookSecret } : {}),
+        },
+        body: JSON.stringify({
+          report: {
+            id: data.id,
+            code: (data as any).code,
+            title: data.title,
+            locationName: (data as any).location_name,
+            scope: (data as any).scope,
+            author: reporterFullName || 'Citizen',
+            reporterEmail,
+            resolverName: resolverName || 'the concerned authority',
+            resolvedAt: new Date().toISOString(),
+          },
+        }),
+      }).catch((e) => console.warn('[report-resolved] notification email failed:', e));
+    }
+
+    return data ? mapRow(data as ReportRow) : undefined;
   },
 
   async markInProgress(id: string, assignedTo: string): Promise<void> {
@@ -168,6 +227,82 @@ export const reportService = {
   async updateScope(id: string, scope: 'city' | 'campus'): Promise<void> {
     if (!supabase) return;
     const { error } = await supabase.from('reports').update({ scope }).eq('id', id);
+    if (error) throw error;
+  },
+
+  /** Proof of fix - before/after */
+  async addProof(
+    id: string,
+    proof: {
+      beforeImage: string;
+      afterImage: string;
+      fixedDate: string;
+      verifiedByAI?: boolean;
+      aiConfidence?: number;
+      description?: string;
+    },
+    resolverName?: string,
+  ): Promise<void> {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from('reports')
+      .update({ proof, status: 'resolved' })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Send the same thank-you email to the reporter when proof is submitted.
+    const reporterUserId = (data as any)?.user_id;
+    let reporterEmail: string | null = null;
+    let reporterFullName: string | null = (data as any)?.author_name || null;
+    if (reporterUserId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', reporterUserId)
+        .maybeSingle();
+      if (profile) {
+        reporterEmail = (profile as any).email || null;
+        reporterFullName = (profile as any).full_name || reporterFullName;
+      }
+    }
+    if (reporterEmail) {
+      const webhookSecret = (import.meta as any)?.env?.VITE_EMAIL_WEBHOOK_SECRET || '';
+      fetch('/api/report-resolved', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(webhookSecret ? { 'x-webhook-secret': webhookSecret } : {}),
+        },
+        body: JSON.stringify({
+          report: {
+            id: data.id,
+            code: (data as any).code,
+            title: (data as any).title,
+            locationName: (data as any).location_name,
+            scope: (data as any).scope,
+            author: reporterFullName || 'Citizen',
+            reporterEmail,
+            resolverName: resolverName || 'the concerned authority',
+            resolvedAt: new Date().toISOString(),
+          },
+        }),
+      }).catch((e) => console.warn('[report-resolved] notification email failed:', e));
+    }
+  },
+
+  /** SLA escalation */
+  async escalate(id: string, escalation: { level: number; escalatedAt: string; reason: string; nextAuthority?: string }): Promise<void> {
+    if (!supabase) return;
+    const { error } = await supabase.from('reports').update({ escalation }).eq('id', id);
+    if (error) throw error;
+  },
+
+  /** Update SLA */
+  async updateSLA(id: string, sla: { deadline: string; status: 'on-track' | 'at-risk' | 'breached'; escalated: boolean; createdAt: string }): Promise<void> {
+    if (!supabase) return;
+    const { error } = await supabase.from('reports').update({ sla }).eq('id', id);
     if (error) throw error;
   },
 };

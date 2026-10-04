@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Flame, Layers, ListFilter, ShieldCheck, Thermometer, Building2 } from 'lucide-react';
+import { Flame, Layers, ListFilter, MapPin, ShieldCheck, Thermometer, Building2 } from 'lucide-react';
 import type { CategoryId, Coordinates, ReportStatus, Severity, ScopeFilter } from '@/types';
 import { useReports } from '@/hooks/useReports';
 import { useBrand } from '@/hooks/useBrand';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { MapView } from '@/components/map/MapView';
+import { MapView, type MapViewHandle } from '@/components/map/MapView';
 import { AmritaCampusMap } from '@/components/campus/AmritaCampusMap';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterBar } from '@/components/FilterBar';
@@ -50,6 +50,7 @@ export function MapPage() {
     center: { lat: 12.9716, lng: 77.5946 },
     zoom: 12,
   });
+  const mapRef = useRef<MapViewHandle>(null);
 
   const debouncedSearch = useDebounce(filters.search, 250);
 
@@ -88,7 +89,16 @@ export function MapPage() {
     filters.search.trim().length > 0 ||
     filters.scope !== (isAmrita ? 'campus' : 'city');
 
-  const clearFilters = () => setFilters({ ...DEFAULT_FILTERS, scope: isAmrita ? 'campus' : 'city' });
+  const clearFilters = () => {
+    setFilters({ ...DEFAULT_FILTERS, scope: isAmrita ? 'campus' : 'city' });
+    mapRef.current?.clearFocus();
+  };
+
+  const handleFindOnMap = () => {
+    const q = filters.search.trim();
+    if (!q) return;
+    mapRef.current?.flyToPlace(q);
+  };
 
   if (isAmrita) {
     return (
@@ -137,21 +147,34 @@ export function MapPage() {
             <p className="text-xs text-slate-500">{visibleReports.length} of {reports.length} reports shown</p>
           </div>
           <div className="flex items-center gap-2">
-            <SearchBar value={filters.search} onChange={(s) => setFilters({ ...filters, search: s })} placeholder="Search area, title, id…" className="flex-1 lg:w-72" />
-            <button onClick={() => setHeatmap(!heatmap)} aria-pressed={heatmap} className={cn('flex h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold', heatmap ? 'border-primary-400 bg-primary-500/10 text-primary-600' : 'border-slate-200 bg-white/70 text-slate-600')}>
+            <div className="flex flex-1 items-stretch gap-0 lg:w-[380px]">
+              <SearchBar value={filters.search} onChange={(s) => setFilters({ ...filters, search: s })} placeholder="Search area, title, id…" className="flex-1" />
+              <button
+                onClick={handleFindOnMap}
+                disabled={!filters.search.trim()}
+                title="Find this place on the map (fly to + blackout)"
+                className="ml-2 flex h-11 items-center gap-1.5 rounded-xl border-[3px] border-[#172b44] bg-[#fffdf4] px-3 text-xs font-black shadow-[3px_3px_0_#172b44] transition enabled:hover:-translate-y-0.5 enabled:hover:bg-[#91dcc4] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <MapPin className="h-3.5 w-3.5" /> <span className="hidden sm:inline">On map</span>
+              </button>
+            </div>
+            <button onClick={() => setHeatmap(!heatmap)} aria-pressed={heatmap} className={cn('flex h-11 items-center gap-2 rounded-xl border-[3px] border-[#172b44] bg-[#fffdf4] px-3.5 text-sm font-semibold shadow-[3px_3px_0_#172b44]', heatmap ? 'bg-[#91dcc4]' : '')}>
               <Thermometer className="h-4 w-4" /> <span className="hidden sm:inline">Heatmap</span>
             </button>
-            <button onClick={() => setFiltersOpen(true)} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3.5 text-sm font-semibold text-slate-600 lg:hidden">
+            <button onClick={() => setFiltersOpen(true)} className="flex h-11 items-center gap-2 rounded-xl border-[3px] border-[#172b44] bg-[#fffdf4] px-3.5 text-sm font-semibold shadow-[3px_3px_0_#172b44] lg:hidden">
               <ListFilter className="h-4 w-4" /> Filters
             </button>
           </div>
         </div>
+        <p className="px-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#172b44]/60 sm:px-6">
+          Type a place &amp; hit "On map" to fly there and dim everything outside the area.
+        </p>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-rows-[1fr_auto] lg:grid-cols-[1fr_340px] lg:grid-rows-1">
         <div className="relative min-h-[320px] bg-[#fff8e7] p-4 sm:p-5">
-          <MapView reports={visibleReports} selectedId={selectedId} onSelect={setSelectedId} center={view.center} zoom={view.zoom} onViewChange={(c, z) => setView({ center: c, zoom: z })} heatmap={heatmap} className="h-full min-h-[320px] border-[5px] border-[#172b44] shadow-[8px_8px_0_#ef6b59]" />
-          <div className="pointer-events-none absolute bottom-8 left-8 z-20 hidden border-[3px] border-[#172b44] bg-[#fff8e7] px-4 py-3 shadow-[4px_4px_0_#172b44] sm:block">
+          <MapView ref={mapRef} reports={visibleReports} selectedId={selectedId} onSelect={setSelectedId} center={view.center} zoom={view.zoom} onViewChange={(c, z) => setView({ center: c, zoom: z })} heatmap={heatmap} className="h-full min-h-[320px] border-[3px] border-[#172b44] shadow-[5px_5px_0_#ef6b59]" />
+          <div className="pointer-events-none absolute bottom-8 left-8 z-20 hidden border-2 border-[#172b44] bg-[#fff8e7] px-4 py-3 shadow-[3px_3px_0_#172b44] sm:block">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Severity</p>
             <div className="space-y-1.5">
               {Object.entries(SEVERITY_META).map(([key, meta]) => (
@@ -169,11 +192,11 @@ export function MapPage() {
             ) : null}
           </AnimatePresence>
         </div>
-        <aside className="hidden min-h-0 flex-col overflow-hidden border-l-[5px] border-[#172b44] bg-[#91dcc4] lg:flex">
-          <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
+        <aside className="hidden min-h-0 flex-col overflow-hidden border-l-4 border-[#172b44] bg-[#91dcc4] lg:flex">
+          <div className="flex items-center justify-between border-b-2 border-[#172b44]/30 px-4 py-3">
             <p className="text-sm font-bold text-slate-800">Visible reports</p>
             {hasActiveFilters ? (
-              <button onClick={clearFilters} className="text-xs font-semibold text-primary-600 hover:underline">Clear filters</button>
+              <button onClick={clearFilters} className="text-xs font-semibold text-[#ef6b59] hover:underline">Clear</button>
             ) : null}
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-3">
@@ -181,11 +204,11 @@ export function MapPage() {
               const severity = SEVERITY_META[r.severity];
               const status = STATUS_META[r.status];
               return (
-                <button key={r.id} onClick={() => setSelectedId(r.id)} className={cn('flex w-full items-start gap-3 rounded-2xl border p-3 text-left', selectedId === r.id ? 'border-primary-400 bg-primary-500/10' : 'border-slate-200/80 bg-white/80 hover:border-primary-300')}>
+                <button key={r.id} onClick={() => setSelectedId(r.id)} className={cn('flex w-full items-start gap-3 rounded-xl border-2 p-2.5 text-left transition-all', selectedId === r.id ? 'border-[#ef6b59] bg-[#ffd630] shadow-[3px_3px_0_#172b44]' : 'border-[#172b44] bg-[#fffdf4] hover:border-[#ef6b59]')}>
                   <img src={r.image} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" loading="lazy" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800">{r.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-slate-400">{r.locationName}</p>
+                    <p className="truncate text-sm font-bold text-slate-800">{r.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-500">{r.locationName}</p>
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       <Badge className={cn(severity.bg, severity.color)}>{severity.label}</Badge>
                       <Badge className={cn(status.bg, status.color)}>{status.label}</Badge>

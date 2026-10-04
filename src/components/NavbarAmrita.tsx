@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/map', label: 'Map' },
   { to: '/live', label: 'Live AI' },
+  { to: '/food-hygiene', label: 'Mess / Hygiene' },
   { to: '/community', label: 'Community' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/about', label: 'About' },

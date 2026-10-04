@@ -149,9 +149,8 @@ export function ReportToAuthority({
     }, 520);
 
     try {
-      const result = await sendEscalationEmail(
-        buildEscalationPayload(report, authority, reporterEmail, note.trim() || undefined),
-      );
+      const payload = await buildEscalationPayload(report, authority, reporterEmail, note.trim() || undefined);
+      const result = await sendEscalationEmail(payload);
 
       if (timerRef.current) window.clearInterval(timerRef.current);
       setEscRef(result.ref);

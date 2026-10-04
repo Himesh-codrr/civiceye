@@ -11,20 +11,32 @@ interface ErrorBoundaryState {
   message: string;
 }
 
-/**
- * Top-level crash guard. If anything throws during render, show a
- * friendly, actionable panel instead of a silent blank page — and log
- * the real error to the console for debugging.
- */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false, message: '' };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, message: error.message || String(error) };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState | null {
+    const msg = error.message || String(error);
+    if (
+      msg.includes('WebSocket') ||
+      msg.includes('realtime') ||
+      msg.includes('websocket') ||
+      msg.toLowerCase().includes('websocket not available')
+    ) {
+      console.warn('[CivicEye] Ignoring non-critical WebSocket error in ErrorBoundary:', msg);
+      return null;
+    }
+    return { hasError: true, message: msg };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Surface the real cause — users can paste this into a GitHub issue.
+    const msg = error.message || String(error);
+    if (
+      msg.includes('WebSocket') ||
+      msg.toLowerCase().includes('websocket not available')
+    ) {
+      console.warn('[CivicEye] Non-critical realtime error caught:', msg);
+      return;
+    }
     console.error('[CivicEye] runtime error:', error, info.componentStack);
   }
 

@@ -12,14 +12,27 @@ const STORAGE_KEY = 'civiceyeComicSound';
 let ctx: AudioContext | null = null;
 let master: AudioNode | null = null;
 let echoSend: GainNode | null = null;
+/** True once any valid user-gesture (pointerdown/keydown/click/touchstart) has fired.
+ *  Browsers refuse to start an AudioContext before such a gesture; creating one
+ *  eagerly (e.g. on mouseenter) throws the "AudioContext was prevented from
+ *  starting automatically" console warning. We therefore gate construction. */
+let audioPrimed = false;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (!audioPrimed) return null; // refuse to build before a real user gesture
   const Ctor =
     window.AudioContext ||
     (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
-  ctx = ctx || new Ctor();
+  if (!ctx) {
+    try {
+      ctx = new Ctor();
+    } catch {
+      return null;
+    }
+  }
+  if (ctx.state === 'suspended') void ctx.resume();
   return ctx;
 }
 
@@ -42,17 +55,34 @@ export function setComicSoundOn(on: boolean) {
 }
 
 /**
- * Browsers only let audio start after a real gesture (click/key). Arm a
- * one-shot listener so the first hover after any click already works.
+ * Browsers only let audio start after a real user gesture (click/touch/key).
+ * Defer AudioContext construction until one of those fires, otherwise we get
+ * the "AudioContext was prevented from starting automatically" warning when
+ * the first sound call happens on e.g. a mouseenter (which is NOT a gesture).
  */
 export function primeComicAudio() {
   if (typeof window === 'undefined') return;
+  if (audioPrimed) return;
   const prime = () => {
-    const c = getCtx();
-    if (c && c.state !== 'running') void c.resume();
+    audioPrimed = true;
+    const Ctor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    if (!ctx) {
+      try {
+        ctx = new Ctor();
+      } catch {
+        return;
+      }
+    }
+    if (ctx.state === 'suspended') void ctx.resume();
   };
-  window.addEventListener('pointerdown', prime, { once: true });
-  window.addEventListener('keydown', prime, { once: true });
+  const opts: AddEventListenerOptions = { once: true, passive: true };
+  window.addEventListener('pointerdown', prime, opts);
+  window.addEventListener('touchstart', prime, opts);
+  window.addEventListener('click', prime, opts);
+  window.addEventListener('keydown', prime, opts);
 }
 
 /**

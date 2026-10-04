@@ -30,7 +30,42 @@
 
 import nodemailer from 'nodemailer';
 
+const rateMap = new Map();
+function rateLimit(ip, max, windowMs) {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+  if (!entry || now - entry.start > windowMs) {
+    rateMap.set(ip, { count: 1, start: now });
+    return true;
+  }
+  if (entry.count >= max) return false;
+  entry.count++;
+  return true;
+}
+function getClientIp(req) {
+  return (req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || 'unknown');
+}
+function sanitizeString(input, maxLen = 5000) {
+  if (typeof input !== 'string') return '';
+  let cleaned = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/javascript\s*:/gi, '').slice(0, maxLen);
+  return cleaned.trim();
+}
+
+/* Centralised sender/reply-to so every email in CivicEye is consistent.
+ * SMTP_FROM env is the source of truth. If it's not set yet we fall back to
+ * the canonical info@ address (SMTP_USER still has to be a real Gmail user
+ * for auth, but we set From to the branded address). */
+const BRAND_EMAIL = 'info@civiceye.co.in';
+function fromAddress() {
+  return process.env.SMTP_FROM || `CivicEye <${BRAND_EMAIL}>`;
+}
+function teamReplyTo() {
+  return { replyTo: BRAND_EMAIL };
+}
+
 /* Built-in authority directory (id → { name, department, email }).
+ * All internal CivicEye / Amrita campus addresses route to the single
+ * branded inbox; external civic bodies keep their official addresses.
  * Keep in sync with src/data/authorities.ts. Env vars always win. */
 const DIRECTORY = {
   'bbmp-42': { name: 'BBMP — Roads & Potholes', department: 'Roads & Infrastructure', email: 'comm@bbmp.gov.in' },
@@ -39,12 +74,26 @@ const DIRECTORY = {
   bescom: { name: 'BESCOM 1912', department: 'Street Lighting & Power', email: '' },
   'traffic-police': { name: 'Bengaluru Traffic Police', department: 'Traffic & Signals', email: '' },
   'forest-dept': { name: 'BBMP Forest Cell', department: 'Trees & Parks', email: 'comm@bbmp.gov.in' },
-  'amrita-estate': { name: 'Campus Estate & Civil Works', department: 'Campus Infrastructure', email: 'civiceyeoffcial@gmail.com' },
-  'amrita-facilities': { name: 'Facilities & Housekeeping', department: 'Sanitation, Water & Electrical', email: 'civiceyeoffcial@gmail.com' },
-  'amrita-security': { name: 'Campus Security Control Room', department: 'Safety & Security', email: 'civiceyeoffcial@gmail.com' },
+  'amrita-estate': { name: 'Campus Estate & Civil Works', department: 'Campus Infrastructure', email: BRAND_EMAIL },
+  'amrita-facilities': { name: 'Facilities & Housekeeping', department: 'Sanitation, Water & Electrical', email: BRAND_EMAIL },
+  'amrita-security': { name: 'Campus Security Control Room', department: 'Safety & Security', email: BRAND_EMAIL },
+  /* SLA-breach higher authorities (city) */
+  'bbmp-commissioner': { name: 'BBMP Commissioner', department: 'Office of the Commissioner · Level 1 escalation', email: 'comm@bbmp.gov.in' },
+  'bbmp-chief-mayor': { name: 'BBMP Chief Commissioner + Mayor', department: 'Level 2 escalation', email: 'comm@bbmp.gov.in' },
+  'ka-udd': { name: 'Karnataka Urban Development Dept', department: 'Principal Secretary UDD · Level 3 escalation', email: 'secyudd@karnataka.gov.in' },
+  /* SLA-breach higher authorities (campus) */
+  'amrita-dean': { name: 'Dean / Director Office', department: 'Level 1 escalation — Campus Administration', email: BRAND_EMAIL },
+  'amrita-vc': { name: 'Vice Chancellor Office', department: 'Level 2 escalation', email: BRAND_EMAIL },
 };
 
-const MAX_BODY_CHARS = 20_000;
+// Max overall JSON payload (after parsing) — ~9 MB. After base64 overhead this
+// fits a compressed photo (~1 MB JPEG ≈ 1.4 MB base64) plus the annotated
+// version plus all metadata without blowing Vercel's 4.5 MB default (we
+// already raised bodyParser.sizeLimit to 10 MB above).
+const MAX_BODY_CHARS = 9_000_000;
+// Max per-image (original or annotated) as base64: ~4 MB ≈ 3 MB JPEG.
+// Anything bigger is stripped and sent as a link instead of an attachment.
+const MAX_IMG_BASE64_CHARS = 4_000_000;
 
 const esc = (s) =>
   String(s ?? '')
@@ -72,96 +121,123 @@ function emailFor(authorityId) {
   return (process.env[envKey] || '').trim() || DIRECTORY[authorityId].email;
 }
 
-function buildEmail({ authority, report, message, ref }) {
+function originFromReq(req) {
+  const host = (process.env.APP_URL || '').replace(/https?:\/\//, '')
+    || req.headers['x-forwarded-host']
+    || req.headers.host
+    || 'civiceye.co.in';
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  return `${proto}://${host}`;
+}
+
+function buildEmail({ authority, report, message, ref, origin }) {
   const lat = report?.coordinates?.lat;
   const lng = report?.coordinates?.lng;
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
   const mapsUrl = hasCoords ? `https://www.google.com/maps?q=${lat},${lng}` : null;
-  const reportUrl = report.url || null;
+  const mapsDirUrl = hasCoords ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null;
+  origin = origin || 'https://civiceye.co.in';
+  const reportUrl = report.url || (report.id ? `${origin}/report/${report.id}` : null);
   const appName = report.scope === 'campus' ? 'Amrita Eye' : 'CivicEye';
+  const isCampus = report.scope === 'campus';
+  const severityUpper = String(report.severity || '').toUpperCase();
+  const isBreach = Boolean(report.slaBreach);
+  const breachLevel = Number(report.escalationLevel) || 1;
+  const breachTag = isBreach ? `[SLA ESCALATION · L${breachLevel}] ` : '';
+  const severityNote = isBreach
+    ? `⚠️ SLA DEADLINE BREACHED — Your Reports have crossed the limited time frame for fixing, SLA escalate now. Escalation Level ${breachLevel}. Please intervene urgently.`
+    : report.severity === 'critical' ? 'Immediate action required — safety risk' : report.severity === 'high' ? 'High priority — please act within 48h' : report.severity === 'medium' ? 'Medium priority — 7 days' : 'Low priority — 14 days';
+
+  const ai = report.ai || {};
+  const hasAnnotated = Boolean(ai.annotatedImage);
 
   const rows = [
     ['Reference', ref],
     ['Report', report.code || report.id || '—'],
     ['Title', report.title],
     ['Category', report.category],
-    ['Severity', report.severity],
+    ['Severity', `${severityUpper} — ${severityNote}`],
     ['Location', report.locationName || (hasCoords ? `${lat}, ${lng}` : '—')],
+    ['Google Maps', mapsUrl || '—'],
+    ['Directions', mapsDirUrl || '—'],
+    ['Report Link', reportUrl || '—'],
     ['Reported by', report.author || 'Citizen'],
     ['Citizen reply-to', report.reporterEmail || '—'],
-    ['Submitted via', appName],
-    ['SLA requested', '7 working days'],
-  ];
+    ['Submitted via', appName + (isCampus ? ' — Estate Office' : ' — BBMP')],
+    ['SLA requested', report.severity === 'critical' ? '24 hours' : '7 working days'],
+    ai.confidence ? ['AI Confidence', `${Math.round(ai.confidence*100)}%`] : null,
+    ai.model ? ['AI Model', ai.model] : null,
+    ai.objects ? ['AI Detected', (ai.objects||[]).join(', ')] : null,
+  ].filter(Boolean);
 
   const tableRows = rows
     .map(
       ([k, v]) => `
       <tr>
         <td style="padding:8px 12px;font-size:13px;color:#64748b;font-weight:600;white-space:nowrap;vertical-align:top;">${esc(k)}</td>
-        <td style="padding:8px 12px;font-size:14px;color:#0f172a;">${esc(v)}</td>
+        <td style="padding:8px 12px;font-size:14px;color:#0f172a;word-break:break-all;">${esc(v)}</td>
       </tr>`,
     )
     .join('');
 
+  const bannerColor = isBreach ? '#b91c1c' : (isCampus ? '#A51636' : '#4f46e5');
+  const breachBanner = isBreach
+    ? `<div style="background:#fef2f2;border-bottom:1px solid #fecaca;padding:12px 20px;color:#991b1b;font-size:13px;font-weight:700;line-height:1.4;">⚠️ SLA ESCALATION — Level ${breachLevel}<br><span style="font-weight:600;">Your Reports have crossed the limited time frame for fixing, SLA escalate now.</span></div>`
+    : '';
+
   const html = `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f8fafc;font-family:Inter,Segoe UI,Arial,sans-serif;">
-  <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
-    <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:20px 24px;">
-      <p style="margin:0;color:#e0e7ff;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;">${esc(appName)} · Citizen escalation ${esc(ref)}</p>
-      <h1 style="margin:6px 0 0;color:#ffffff;font-size:20px;">New civic issue reported in your jurisdiction</h1>
-      <p style="margin:6px 0 0;color:#e0e7ff;font-size:13px;">Routed to: ${esc(authority.name)} (${esc(authority.department)})</p>
+<html><body style="margin:0;padding:20px;background:#f8fafc;font-family:Inter,Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+    ${breachBanner}
+    <div style="background:${bannerColor};padding:16px 20px;">
+      <p style="margin:0;color:#ffffff;font-size:13px;font-weight:700;">${esc(breachTag)}${esc(appName)} — ${esc(severityUpper)} — ${esc(ref)}</p>
+      <h1 style="margin:4px 0 0;color:#ffffff;font-size:18px;">${esc(report.title)}</h1>
     </div>
-    <div style="padding:16px 24px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${tableRows}</table>
-      <div style="margin:16px 0;padding:14px 16px;background:#f1f5f9;border-radius:12px;">
-        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">Description</p>
-        <p style="margin:0;font-size:14px;line-height:1.6;color:#1e293b;white-space:pre-wrap;">${esc(report.description)}</p>
+    <div style="padding:16px 20px;">
+      <table style="width:100%;border-collapse:collapse;">${tableRows}</table>
+      <div style="margin:14px 0;padding:12px;background:#f8fafc;border-radius:8px;">
+        <p style="margin:0;font-size:14px;line-height:1.5;white-space:pre-wrap;">${esc(report.description)}</p>
       </div>
-      ${
-        message
-          ? `<div style="margin:16px 0;padding:14px 16px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
-        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:.08em;">Note from the citizen</p>
-        <p style="margin:0;font-size:14px;line-height:1.6;color:#7c2d12;white-space:pre-wrap;">${esc(message)}</p>
-      </div>`
-          : ''
-      }
-      <div style="margin:20px 0 8px;">
-        ${reportUrl ? `<a href="${esc(reportUrl)}" style="display:inline-block;margin:0 8px 8px 0;padding:10px 18px;background:#4f46e5;color:#ffffff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;">View full report & evidence photo</a>` : ''}
-        ${mapsUrl ? `<a href="${esc(mapsUrl)}" style="display:inline-block;margin:0 8px 8px 0;padding:10px 18px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;">Open location in Google Maps</a>` : ''}
+      ${hasAnnotated ? `<div style="margin:14px 0;padding:12px;background:#ecfdf5;border-radius:8px;"><p style="margin:0;font-size:13px;color:#065f46;">AI: ${esc(ai.summary)} — ${ai.confidence ? Math.round(ai.confidence*100)+'%' : ''} — ${esc((ai.objects||[]).join(', '))}</p></div>` : ''}
+      ${message ? `<div style="margin:14px 0;padding:12px;background:#fff7ed;border-radius:8px;"><p style="margin:0;font-size:13px;white-space:pre-wrap;">Note: ${esc(message)}</p></div>` : ''}
+      <div style="margin:16px 0;">
+        ${reportUrl ? `<a href="${esc(reportUrl)}" style="display:inline-block;margin:0 6px 6px 0;padding:8px 14px;background:${isCampus ? '#A51636' : '#4f46e5'};color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700;">View Report</a>` : ''}
+        ${mapsUrl ? `<a href="${esc(mapsUrl)}" style="display:inline-block;margin:0 6px 6px 0;padding:8px 14px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700;">Google Maps — ${esc(severityUpper)}</a>` : ''}
       </div>
-      <p style="font-size:12px;color:#94a3b8;line-height:1.6;">
-        This escalation was generated when a citizen pressed “Report to authority” in ${esc(appName)}.
-        Please acknowledge within the requested SLA. ${report.image ? `Evidence photo: ${esc(report.image)}` : ''}
-      </p>
+      <p style="font-size:11px;color:#94a3b8;">Sent via ${esc(appName)} · ${esc(origin)} · Original &amp; AI-annotated photos attached when available.</p>
     </div>
   </div>
 </body></html>`;
 
   const text = [
-    `${appName} — Citizen escalation ${ref}`,
-    `Routed to: ${authority.name} (${authority.department})`,
-    '',
-    ...rows.map(([k, v]) => `${k}: ${v}`),
-    '',
-    `Description:\n${report.description}`,
-    message ? `\nNote from the citizen:\n${message}` : '',
-    reportUrl ? `\nFull report: ${reportUrl}` : '',
-    mapsUrl ? `\nLocation: ${mapsUrl}` : '',
-    report.image ? `\nEvidence photo: ${report.image}` : '',
-  ]
-    .filter((l) => l !== '')
-    .join('\n');
+    `${appName} — ${severityUpper} — ${report.code || report.id} — ${report.title}`,
+    `Category: ${report.category} · Severity: ${severityUpper}`,
+    `Location: ${report.locationName} (${lat}, ${lng})`,
+    `Maps: ${mapsUrl}`,
+    `Report: ${reportUrl}`,
+    `Original: ${report.image}`,
+    hasAnnotated ? `Annotated: ${ai.annotatedImage}` : '',
+    `Description: ${report.description}`,
+    message ? `Note: ${message}` : '',
+    ai.summary ? `AI: ${ai.summary} ${ai.confidence ? Math.round(ai.confidence*100)+'%' : ''}` : '',
+  ].filter(Boolean).join('\n');
 
   return {
-    subject: `[${appName}] ${report.title} — escalation ${ref}`.slice(0, 160),
+    subject: `${breachTag}[${appName}] ${severityUpper} — ${report.title} — escalation ${ref}`.slice(0, 160),
     html,
-    text,
+    text: (isBreach ? `⚠️ SLA BREACH L${breachLevel} — ` : '') + text,
   };
 }
 
-export const config = { api: { bodyParser: { sizeLimit: '2mb' } } };
+// Allow ~10 MB so base64-encoded phone photos (4–8 MB) don't trip the 4.5 MB
+// Vercel default before they even reach our own size check. The API is still
+// protected by MAX_BODY_CHARS below and only serves allow-listed recipients.
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed. Use POST.' });
     return;
@@ -186,7 +262,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const message = String(raw.message || '').slice(0, 2000);
+  const message = sanitizeString(String(raw.message || ''), 2000);
   const ref = `ESC-${Date.now().toString(36).toUpperCase()}`;
   const to = emailFor(authorityId);
 
@@ -204,14 +280,63 @@ export default async function handler(req, res) {
 
   try {
     const transport = nodemailer.createTransport(smtp);
-    const mail = buildEmail({ authority, report, message, ref });
+    const origin = originFromReq(req);
+    const mail = buildEmail({ authority, report, message, ref, origin });
+
+    // Attach original + AI annotated pictures as data URLs only if they are
+    // not too large (SMTP relays and Vercel response buffering hate multi-MB
+    // attachments). Oversize images are still linked in the email body.
+    const attachments = [];
+    const strippedImages = [];
+    const addAttachmentFromDataUrl = (dataUrl, filename) => {
+      if (!dataUrl || typeof dataUrl !== 'string') return;
+      if (dataUrl.startsWith('data:')) {
+        if (dataUrl.length > MAX_IMG_BASE64_CHARS) {
+          strippedImages.push(filename);
+          return;
+        }
+        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          const contentType = match[1];
+          const base64 = match[2];
+          attachments.push({
+            filename,
+            content: Buffer.from(base64, 'base64'),
+            contentType,
+          });
+        }
+      }
+    };
+
+    // Original photo
+    addAttachmentFromDataUrl(report.image, `original-${ref}.jpg`);
+    // AI annotated photo
+    if (report.ai?.annotatedImage) {
+      addAttachmentFromDataUrl(report.ai.annotatedImage, `ai-annotated-${ref}.jpg`);
+    }
+
+    // If we stripped oversized images, add a note so the recipient knows to
+    // click the Report URL for full-resolution evidence.
+    const strippedNote = strippedImages.length
+      ? `<p style="font-size:11px;color:#94a3b8;">Note: ${strippedImages.join(' + ')} exceeded email attachment size limits — open the Report link above to view full-resolution evidence.</p>`
+      : '';
+
+    // If image is http URL (not data URL), we cannot attach directly without fetching, but we include link in email
+    // For data URLs we attach, for http we leave as link (to avoid fetching in serverless)
+
     await transport.sendMail({
-      from: process.env.SMTP_FROM || `"CivicEye Alerts" <${process.env.SMTP_USER}>`,
+      from: fromAddress(),
       to,
-      ...(report.reporterEmail ? { replyTo: String(report.reporterEmail).slice(0, 254) } : {}),
+      // When the authority hits Reply, it routes to the CivicEye inbox by
+      // default; if the citizen attached their email we include it so the
+      // authority can reply directly to the reporter AND copy us.
+      replyTo: report.reporterEmail
+        ? `${String(report.reporterEmail).slice(0, 254)}, ${BRAND_EMAIL}`
+        : BRAND_EMAIL,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
+      attachments: attachments.length ? attachments : undefined,
     });
 
     res.status(200).json({

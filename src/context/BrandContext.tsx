@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { BrandId } from '@/types';
@@ -12,6 +12,10 @@ interface BrandContextValue {
   brand: BrandId;
   meta: BrandMeta;
   isAmrita: boolean;
+  /** Preview/override the brand imperatively — used by the login page to
+   *  switch colors instantly while the user types their @amrita.edu address,
+   *  so the post-login navigation doesn't flash CivicEye. */
+  setPreviewBrand: (b: BrandId | null) => void;
 }
 
 const BrandContext = createContext<BrandContextValue | null>(null);
@@ -27,8 +31,14 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const { user, isAmrita, loading } = useAuth();
   const location = useLocation();
   const [brand, setBrand] = useState<BrandId>(initialBrand);
+  const [previewBrand, setPreviewBrandState] = useState<BrandId | null>(null);
+
+  const setPreviewBrand = useCallback((b: BrandId | null) => {
+    setPreviewBrandState(b);
+  }, []);
 
   /* Effective brand:
+     - setPreviewBrand() override (login page pre-switch).
      - ?brand=amrita|civiceye in the URL explicitly forces a brand (demo/dev
        preview tool — lets you preview the Amrita Eye experience without an
        Amrita login, and vice-versa).
@@ -36,6 +46,10 @@ export function BrandProvider({ children }: { children: ReactNode }) {
        CivicEye branding, even for logged-out visitors).
      - Otherwise: Amrita emails → Amrita Eye; everyone else → CivicEye. */
   useEffect(() => {
+    if (previewBrand) {
+      setBrand(previewBrand);
+      return;
+    }
     if (loading) return;
     const routeAmrita = location.pathname.startsWith('/amrita');
     const q = new URLSearchParams(location.search).get('brand');
@@ -47,7 +61,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     }
     setBrand(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAmrita, user?.id, loading, location.pathname, location.search]);
+  }, [previewBrand, isAmrita, user?.id, loading, location.pathname, location.search]);
 
   /* Apply the brand class + document title + favicon + meta. */
   useEffect(() => {
@@ -70,8 +84,8 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   }, [brand]);
 
   const value = useMemo<BrandContextValue>(
-    () => ({ brand, meta: BRAND_META[brand], isAmrita: brand === 'amrita' }),
-    [brand],
+    () => ({ brand, meta: BRAND_META[brand], isAmrita: brand === 'amrita', setPreviewBrand }),
+    [brand, setPreviewBrand],
   );
 
   return <BrandContext.Provider value={value}>{children}</BrandContext.Provider>;

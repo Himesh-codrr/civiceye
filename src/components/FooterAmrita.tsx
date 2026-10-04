@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Github, Heart, Instagram, Linkedin, Mail, MapPin, Twitter } from 'lucide-react';
+import { Heart, Instagram, Linkedin, Mail, MapPin } from 'lucide-react';
 import { Logo } from './Logo';
 import { useBrand } from '@/hooks/useBrand';
 
 const QUICK_LINKS = [
   { to: '/map', label: 'Interactive Map' },
-  { to: '/live', label: 'Live AI Detection' },
+  { to: '/amrita/map', label: 'Campus Map' },
   { to: '/report', label: 'Report an Issue' },
+  { to: '/food-hygiene', label: 'Mess / Food Hygiene (Anonymous)' },
   { to: '/community', label: 'Community Reports' },
-  { to: '/dashboard', label: 'Authorities Dashboard' },
   { to: '/features', label: 'Features' },
 ];
 
@@ -21,11 +21,9 @@ const COMPANY_LINKS = [
 const AMRITA_PLACE = 'Amrita Vishwa Vidyapeetham \u00b7 Bengaluru Campus';
 
 const SOCIALS = [
-  { href: 'https://twitter.com', label: 'Twitter / X', icon: Twitter },
-  { href: 'https://facebook.com', label: 'Facebook', icon: Facebook },
-  { href: 'https://instagram.com', label: 'Instagram', icon: Instagram },
-  { href: 'https://linkedin.com', label: 'LinkedIn', icon: Linkedin },
-  { href: 'https://github.com', label: 'GitHub', icon: Github },
+  { href: 'https://www.instagram.com/civiceye_offcial/', label: 'Instagram', icon: Instagram },
+  { href: 'https://www.linkedin.com/in/civiceye-official-21296242b', label: 'LinkedIn', icon: Linkedin },
+  { href: 'mailto:info@civiceye.co.in', label: 'Email', icon: Mail },
 ];
 
 /** Site-wide footer, structural HIG layout. */
@@ -87,11 +85,11 @@ export function FooterAmrita() {
               ))}
             </ul>
             <a
-              href="mailto:civiceyeoffcial@gmail.com"
+              href="mailto:info@civiceye.co.in"
               className="mt-6 flex items-center gap-3 text-sm font-medium text-neutral-600 dark:text-neutral-300 transition-colors hover:text-neutral-900 dark:text-white"
             >
               <Mail className="h-4 w-4" />
-              civiceyeoffcial@gmail.com
+              info@civiceye.co.in
             </a>
           </nav>
 
@@ -115,7 +113,7 @@ export function FooterAmrita() {
               ))}
             </div>
             <p className="mt-8 rounded-sm bg-neutral-50 dark:bg-neutral-900 p-4 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-              <strong>Prototype build:</strong> all data shown is simulated for demo purposes.
+              Making cities better, one report at a time. Report a civic issue in seconds — AI verifies and routes it to the right team.
             </p>
           </div>
         </div>
@@ -127,13 +125,13 @@ export function FooterAmrita() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-medium text-neutral-500 dark:text-neutral-400">
             <Link
-              to="/about"
+              to="/privacy"
               className="transition-colors hover:text-neutral-900 dark:text-white"
             >
               Privacy Policy
             </Link>
             <Link
-              to="/about"
+              to="/terms"
               className="transition-colors hover:text-neutral-900 dark:text-white"
             >
               Terms of Service

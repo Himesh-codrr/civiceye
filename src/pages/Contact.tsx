@@ -10,7 +10,7 @@ import { useBrand } from '@/hooks/useBrand';
 import { authoritiesForScope } from '@/data/authorities';
 
 /** Official CivicEye contact inbox — used across the contact + escalation flows. */
-export const CIVICEYE_CONTACT_EMAIL = 'civiceyeoffcial@gmail.com';
+export const CIVICEYE_CONTACT_EMAIL = 'info@civiceye.co.in';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Please enter your name.'),
@@ -23,13 +23,13 @@ const contactSchema = z.object({
 type ContactForm = z.infer<typeof contactSchema>;
 
 const INFO: Array<{ icon: typeof Mail; label: string; value: string; href?: string }> = [
-  { icon: Mail, label: 'Email', value: 'civiceyeoffcial@gmail.com', href: `mailto:${CIVICEYE_CONTACT_EMAIL}` },
+  { icon: Mail, label: 'Email', value: CIVICEYE_CONTACT_EMAIL, href: `mailto:${CIVICEYE_CONTACT_EMAIL}` },
   { icon: Phone, label: 'Helpline', value: '1533 · 1912 · 19145 (govt helplines)' },
   { icon: MapPin, label: 'Serving', value: 'Bengaluru, Karnataka, India' },
   { icon: Clock, label: 'Response time', value: 'Within 1–2 working days' },
 ];
 
-/** Contact page with a validated form (prototype — no real submission). */
+/** Contact page with a validated form — opens the user's mail client. */
 export function Contact() {
   const toast = useToast();
   const { isAmrita } = useBrand();
@@ -137,8 +137,9 @@ export function Contact() {
                     Message sent! 🎉
                   </h3>
                   <p className="mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-                    Thanks for reaching out. This is a prototype, so nothing was actually emailed —
-                    but in a real deployment this would land straight in our inbox.
+                    Thanks for reaching out! Your email app just opened with your message
+                    addressed to {CIVICEYE_CONTACT_EMAIL} — hit send and our team will get back to
+                    you within 1–2 working days.
                   </p>
                   <button onClick={() => setSent(false)} className="btn-secondary mt-6">
                     Send another message

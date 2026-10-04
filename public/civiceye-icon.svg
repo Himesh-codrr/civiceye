@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="CivicEye" shape-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <!-- Top-left warm gold → bottom-right emerald, matching the site badge -->
+      <stop offset="0" stop-color="#E0A92E"/>
+      <stop offset="0.55" stop-color="#B49035"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square tile -->
+  <rect x="2" y="2" width="60" height="60" rx="16" ry="16" fill="url(#bg)"/>
+
+  <!-- White outline map pin (Lucide MapPin shape, stroke width ~2.4) -->
+  <path
+    d="M32 14 C24.3 14 18 20.3 18 28 C18 37.8 30 50 32 50 C34 50 46 37.8 46 28 C46 20.3 39.7 14 32 14 Z"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Pin center ring + dot -->
+  <circle cx="32" cy="28" r="4.5" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+  <circle cx="32" cy="28" r="1.8" fill="#ffffff"/>
+
+  <!-- Amber "verified / new" badge dot in top-right corner -->
+  <circle cx="50" cy="14" r="8" fill="#F5B642"/>
+</svg>

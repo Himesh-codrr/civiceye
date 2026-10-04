@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, MapPin, ShieldAlert, Sparkles, Users } from 'lucide-react';
-import { founderThemes, isComicSoundOn, setComicSoundOn } from '@/utils/comicSound';
+import { founderThemes, isComicSoundOn, playBlip, setComicSoundOn } from '@/utils/comicSound';
 import { useReports } from '@/hooks/useReports';
 import { useBrand } from '@/hooks/useBrand';
+import { useAuth } from '@/hooks/useAuth';
 
 const steps = [
   ['01', 'Spot it', 'Notice a pothole, a dark street, or an open manhole.'],
@@ -35,6 +36,7 @@ const mission =
 export function Landing() {
   const { reports } = useReports();
   const { isAmrita } = useBrand();
+  const { user } = useAuth();
   const [promoOpen, setPromoOpen] = useState(false);
   const [certificateOpen, setCertificateOpen] = useState(false);
   const [certificateIssued, setCertificateIssued] = useState(false);
@@ -42,7 +44,6 @@ export function Landing() {
   const [certificatePlace, setCertificatePlace] = useState('');
   const [certificateImage, setCertificateImage] = useState('');
   const [soundOn, setSoundOn] = useState(isComicSoundOn);
-  const audioRef = useRef<AudioContext | null>(null);
   // Shows the sticky "ABOUT US" prompt once a visitor has left the hero, so it
   // stays in front of them for the rest of the page.
   const [pastHero, setPastHero] = useState(false);
@@ -64,27 +65,24 @@ export function Landing() {
     };
   }, [reports, isAmrita]);
 
-  const missionProgress = 2;
+  const missionProgress = useMemo(() => {
+    if (!user) return 2; // demo shows 2/3 for visitors
+    const userReports = reports.filter((r) => r.userId === user.id || r.author === user.email || r.scope === (isAmrita ? 'campus' : 'city'));
+    const verifiedCount = userReports.filter((r) => r.verified).length;
+    const totalCount = userReports.length;
+    // Mission: 3 verified reports or 3 total reports with at least 1 verified
+    return Math.min(3, Math.max(verifiedCount, Math.min(totalCount, 2) + (verifiedCount > 0 ? 1 : 0)));
+  }, [reports, user, isAmrita]);
   const missionComplete = missionProgress >= 3;
 
+
+  /** Route all UI blips through the gesture-gated shared engine so we never
+   *  construct an AudioContext before the user has interacted with the page
+   *  (which would otherwise spam the "AudioContext prevented from starting
+   *  automatically" console warning on every mouseenter). */
   const sound = (notes: number[]) => {
     if (!soundOn) return;
-    const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    const context = audioRef.current || new Ctx();
-    audioRef.current = context;
-    void context.resume();
-    notes.forEach((frequency, i) => {
-      const osc = context.createOscillator();
-      const gain = context.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = frequency;
-      gain.gain.setValueAtTime(0, context.currentTime + i * 0.07);
-      gain.gain.linearRampToValueAtTime(0.13, context.currentTime + i * 0.07 + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + i * 0.07 + 0.18);
-      osc.connect(gain); gain.connect(context.destination);
-      osc.start(context.currentTime + i * 0.07); osc.stop(context.currentTime + i * 0.07 + 0.2);
-    });
+    playBlip(notes);
   };
 
   const downloadCertificate = () => {
@@ -175,7 +173,7 @@ export function Landing() {
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {creators.map(([badge, name, role, tint], index) => (
               <li key={name}>
-                <Link onMouseEnter={() => founderThemes[index]?.()} onClick={() => founderThemes[index]?.()} to="/about#creators" tabIndex={0} className="flex h-full items-center gap-3 border-4 border-[#172b44] bg-[#fffdf4] p-4 shadow-[5px_5px_0_#172b44] transition hover:-translate-y-1 hover:rotate-[-1deg] hover:shadow-[7px_8px_0_#ffd630]">
+                <Link onClick={() => founderThemes[index]?.()} to="/about#creators" tabIndex={0} className="flex h-full items-center gap-3 border-4 border-[#172b44] bg-[#fffdf4] p-4 shadow-[5px_5px_0_#172b44] transition hover:-translate-y-1 hover:rotate-[-1deg] hover:shadow-[7px_8px_0_#ffd630]">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center border-[3px] border-[#172b44] font-serif text-xl font-black shadow-[3px_3px_0_#172b44]" style={{ background: tint }}>{badge}</span>
                   <span className="min-w-0">
                     <span className="block font-serif text-base font-black uppercase leading-tight">{name}</span>
@@ -242,24 +240,93 @@ export function Landing() {
       </section>
 
       <section className="section-pad pb-16 sm:pb-24">
-        <div className="border-[5px] border-[#172b44] bg-[#172b44] p-6 text-[#fff8e7] shadow-[10px_10px_0_#ffd630] sm:p-10">
-          <p className="inline-block border-2 border-[#172b44] bg-[#ffd630] px-3 py-1 text-xs font-black tracking-[.14em] text-[#172b44]">CIVIC HERO MISSIONS</p>
-          <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_.9fr]">
-            <div>
-              <h2 className="font-serif text-4xl font-black uppercase leading-[.9] sm:text-5xl">Your next<br />city mission.</h2>
-              <p className="mt-4 max-w-xl font-semibold leading-relaxed text-[#fff8e7]/90">Confirm three neighbourhood reports and help a real civic issue become impossible to ignore.</p>
-              <div className="mt-6 border-3 border-[#fff8e7] bg-[#ef6b59] p-4 text-[#172b44] shadow-[4px_4px_0_#fff8e7]">
-                <p className="text-xs font-black tracking-[.14em]">MISSION #004 — LIGHT UP THE BLOCK</p>
-                <p className="mt-2 font-serif text-2xl font-black">PROGRESS: {missionProgress} / 3</p>
-                <div className="mt-3 h-4 border-2 border-[#172b44] bg-[#fff8e7] p-[2px]"><div className="h-full bg-[#ffd630]" style={{ width: `${(missionProgress / 3) * 100}%` }} /></div>
+        <div className="relative overflow-hidden border-4 border-[#172b44] bg-[#172b44] p-6 text-[#fff8e7] shadow-[6px_6px_0_#ffd630] sm:p-10">
+          
+          <div className="relative z-10">
+            <p className="inline-block border-[3px] border-[#172b44] bg-[#ffd630] px-3 py-1.5 text-xs font-black tracking-[.14em] text-[#172b44] shadow-[3px_3px_0_#fff8e7]">CIVIC HERO MISSIONS</p>
+            <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+              <div>
+                <h2 className="font-serif text-4xl font-black uppercase leading-[.85] tracking-[-.02em] [text-shadow:3px_3px_0_#ef6b59] sm:text-5xl">Your next<br />city mission.</h2>
+                <p className="mt-4 max-w-xl text-[15px] font-semibold leading-relaxed text-[#fff8e7]/90">Confirm three neighbourhood reports and help a real civic issue become impossible to ignore.</p>
+                <div className="mt-6 border-[3px] border-[#172b44] bg-[#ef6b59] p-4 text-white shadow-[4px_4px_0_#ffd630]">
+                  <p className="text-[11px] font-black uppercase tracking-[.14em] text-[#172b44]">Mission #004 — Light up the block</p>
+                  <p className="mt-2 font-serif text-2xl font-black uppercase tracking-tight text-[#172b44]">Progress: {missionProgress} / 3</p>
+                  <div className="mt-3 h-5 border-[3px] border-[#172b44] bg-[#fff8e7] p-[3px] shadow-[2px_2px_0_#172b44]"><div className="h-full bg-[#ffd630]" style={{ width: `${(missionProgress / 3) * 100}%` }} /></div>
+                  <p className="mt-2 text-xs font-bold text-[#172b44]/70">{missionProgress} of 3 confirmed — keep going!</p>
+                </div>
+              </div>
+              <div className="border-[4px] border-[#172b44] bg-[#0f2e3d] p-6 text-[#fff8e7] shadow-[4px_4px_0_#ef6b59]">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#ffd630]" />
+                  <p className="text-[11px] font-black uppercase tracking-[.14em] text-[#91dcc4]">Reward unlocked at 3 / 3</p>
+                </div>
+                <h3 className="mt-3 font-serif text-3xl font-black uppercase leading-[.9] tracking-[-.01em] text-[#fff8e7] [text-shadow:2px_2px_0_#ef6b59]">Street<br />Guardian</h3>
+                <p className="mt-4 text-sm font-medium leading-relaxed text-[#fff8e7]/80">Earn a CivicEye badge and an appreciation certificate for verified community action.</p>
+                <button disabled={!missionComplete} onClick={() => { setCertificateOpen(true); setCertificateIssued(false); sound([523, 659, 784, 1046]); }} className="mt-6 w-full border-[3px] border-[#172b44] bg-[#ffd630] px-4 py-3 text-sm font-black uppercase tracking-wide text-[#172b44] shadow-[4px_4px_0_#fff8e7] transition-all hover:-translate-y-0.5 hover:shadow-[5px_5px_0_#fff8e7] disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-[#2a3a4a] disabled:text-[#5a6a7a] disabled:shadow-none">{missionComplete ? 'View City Hero Rewards ✦' : `Locked — Complete ${3 - missionProgress} More`}</button>
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-[#91dcc4]/70">{missionComplete ? 'Ready to claim!' : 'Complete 1 more report to unlock'}</p>
               </div>
             </div>
-            <div className="border-4 border-[#172b44] bg-[#91dcc4] p-6 text-[#172b44] shadow-[5px_5px_0_#ef6b59]">
-              <p className="text-xs font-black tracking-[.14em]">REWARD UNLOCKED AT 3 / 3</p>
-              <h3 className="mt-3 font-serif text-3xl font-black uppercase leading-none">Street<br />Guardian</h3>
-              <p className="mt-4 text-sm font-semibold">Earn a CivicEye badge and an appreciation certificate for verified community action.</p>
-              <button disabled={!missionComplete} onClick={() => { setCertificateOpen(true); setCertificateIssued(false); sound([523, 659, 784, 1046]); }} className="mt-6 border-3 border-[#172b44] bg-[#ffd630] px-4 py-3 text-sm font-black shadow-[4px_4px_0_#172b44] disabled:cursor-not-allowed disabled:bg-[#d9d3bd] disabled:text-[#59626a] disabled:shadow-none">{missionComplete ? 'VIEW CITY HERO REWARDS ✦' : `LOCKED — COMPLETE ${3 - missionProgress} MORE REPORT`}</button>
+          </div>
+        </div>
+      </section>
+
+            {/* Live Stats — Fixed, Pending, Escalated, Leaderboard — HIGH CONTRAST FIXED */}
+      <section className="section-pad bg-[#0f1a2e] py-12 sm:py-16">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Fixed Issues */}
+          <div className="relative border-[4px] border-[#172b44] bg-[#d1fae5] p-5 shadow-[6px_6px_0_#172b44]">
+            <div className="absolute -top-3 left-4 bg-[#172b44] px-3 py-1 text-[11px] font-black tracking-widest text-white">FIXED ISSUES</div>
+            <p className="mt-4 font-serif text-5xl font-black leading-none" style={{ color: '#172b44' }}>{stats.resolved}</p>
+            <p className="mt-2 text-[13px] font-black leading-tight" style={{ color: '#172b44' }}>✓ Resolved & verified with before/after proof</p>
+            <div className="mt-4 h-3 w-full bg-white border-[3px] border-[#172b44] p-[2px]"><div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (stats.resolved / Math.max(1, stats.total)) * 100)}%` }} /></div>
+            <p className="mt-3 rounded bg-[#172b44] px-2 py-1 text-[11px] font-bold text-white">Proof of fix with AI verification</p>
+          </div>
+          
+          {/* Pending Issues */}
+          <div className="relative border-[4px] border-[#172b44] bg-[#fef3c7] p-5 shadow-[6px_6px_0_#172b44]">
+            <div className="absolute -top-3 left-4 bg-[#172b44] px-3 py-1 text-[11px] font-black tracking-widest text-white">PENDING ISSUES</div>
+            <p className="mt-4 font-serif text-5xl font-black leading-none" style={{ color: '#172b44' }}>{reports.filter((r) => r.scope === (isAmrita ? 'campus' : 'city') && r.status === 'pending').length}</p>
+            <p className="mt-2 text-[13px] font-black leading-tight" style={{ color: '#172b44' }}>⏳ Awaiting community verification</p>
+            <div className="mt-4 h-3 w-full bg-white border-[3px] border-[#172b44] p-[2px]"><div className="h-full bg-amber-400" style={{ width: `${Math.min(100, (reports.filter((r) => r.scope === (isAmrita ? 'campus' : 'city') && r.status === 'pending').length / Math.max(1, stats.total)) * 100)}%` }} /></div>
+            <p className="mt-3 rounded bg-[#172b44] px-2 py-1 text-[11px] font-bold text-white">Needs 3 confirms to verify</p>
+          </div>
+          
+          {/* Escalated Issues */}
+          <div className="relative border-[4px] border-[#172b44] bg-[#fecdd3] p-5 shadow-[6px_6px_0_#172b44]">
+            <div className="absolute -top-3 left-4 bg-[#ef6b59] px-3 py-1 text-[11px] font-black tracking-widest text-white">ESCALATED</div>
+            <p className="mt-4 font-serif text-5xl font-black leading-none" style={{ color: '#172b44' }}>{reports.filter((r) => r.scope === (isAmrita ? 'campus' : 'city') && r.escalation && r.escalation.level > 0).length}</p>
+            <p className="mt-2 text-[13px] font-black leading-tight" style={{ color: '#172b44' }}>⚠️ SLA breached → auto-escalated</p>
+            <div className="mt-4 space-y-1.5 rounded border-2 border-[#172b44] bg-white p-2 text-[12px] font-black" style={{ color: '#172b44' }}>
+              <div className="flex justify-between border-b border-[#172b44]/10 pb-1"><span>Critical</span><span className="bg-rose-500 text-white px-2 rounded">24h</span></div>
+              <div className="flex justify-between border-b border-[#172b44]/10 pb-1"><span>High</span><span className="bg-orange-500 text-white px-2 rounded">48h</span></div>
+              <div className="flex justify-between"><span>Medium</span><span className="bg-amber-500 text-white px-2 rounded">7d</span></div>
             </div>
+          </div>
+          
+          {/* Leaderboard */}
+          <div className="relative border-[4px] border-[#172b44] bg-[#172b44] p-5 shadow-[6px_6px_0_#ffd630]">
+            <div className="absolute -top-3 left-4 bg-[#ffd630] px-3 py-1 text-[11px] font-black tracking-widest" style={{ color: '#172b44' }}>LEADERBOARD</div>
+            <h3 className="mt-4 font-serif text-2xl font-black uppercase leading-none" style={{ color: '#fff8e7' }}>Top Heroes</h3>
+            <div className="mt-4 space-y-2">
+              {reports
+                .filter((r) => r.scope === (isAmrita ? 'campus' : 'city'))
+                .reduce((acc: any[], r) => {
+                  const ex = acc.find((a) => a.author === r.author);
+                  if (ex) { ex.count++; if (r.verified) ex.verified++; }
+                  else acc.push({ author: r.author, count: 1, verified: r.verified ? 1 : 0 });
+                  return acc;
+                }, [])
+                .sort((a, b) => b.verified - a.verified || b.count - a.count)
+                .slice(0, 3)
+                .map((leader: any, i: number) => (
+                  <div key={leader.author} className="flex items-center gap-2 border-[3px] border-[#172b44] bg-[#fff8e7] p-2.5 shadow-[3px_3px_0_#ffd630]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-[#172b44] text-[12px] font-black text-white">{i + 1}</span>
+                    <span className="font-black truncate flex-1 text-[13px]" style={{ color: '#172b44' }}>{leader.author}</span>
+                    <span className="rounded bg-[#172b44] px-2 py-1 text-[11px] font-black text-white">{leader.count} reports</span>
+                  </div>
+                ))}
+            </div>
+            <p className="mt-4 rounded bg-[#ffd630] px-2 py-1.5 text-[11px] font-black" style={{ color: '#172b44' }}>Report 3 issues → Street Guardian certificate</p>
           </div>
         </div>
       </section>
